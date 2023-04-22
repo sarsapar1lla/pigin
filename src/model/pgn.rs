@@ -1,8 +1,16 @@
 use std::collections::HashMap;
 
-use super::{Piece, PieceColour};
+use super::{Piece, PieceColour, Ply};
 
 pub type Tags = HashMap<String, String>;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum GameResult {
+    BlackWin,
+    WhiteWin,
+    Draw,
+    Ongoing,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Fen {
@@ -37,11 +45,18 @@ impl Fen {
 pub struct Pgn {
     tags: Tags,
     fen: Fen,
+    result: GameResult,
+    ply_list: Vec<Ply>,
 }
 
 impl Pgn {
-    pub fn new(tags: Tags, fen: Fen) -> Self {
-        Pgn { tags, fen }
+    pub fn new(tags: Tags, fen: Fen, result: GameResult, ply_list: Vec<Ply>) -> Self {
+        Pgn {
+            tags,
+            fen,
+            result,
+            ply_list,
+        }
     }
 
     pub fn tags(&self) -> &Tags {
@@ -50,5 +65,13 @@ impl Pgn {
 
     pub fn fen(&self) -> &Fen {
         &self.fen
+    }
+
+    pub fn result(&self) -> GameResult {
+        self.result
+    }
+
+    pub fn ply_list(&self) -> &Vec<Ply> {
+        &self.ply_list
     }
 }

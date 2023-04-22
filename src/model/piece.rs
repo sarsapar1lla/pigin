@@ -1,6 +1,6 @@
 use super::position::Position;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceColour {
     Black,
     White,
@@ -22,15 +22,22 @@ pub struct Piece {
     piece_type: PieceType,
     position: Position,
     unicode: String,
+    has_moved: bool,
 }
 
 impl Piece {
-    pub fn new(piece_colour: PieceColour, piece_type: PieceType, position: Position) -> Self {
+    pub fn new(
+        piece_colour: PieceColour,
+        piece_type: PieceType,
+        position: Position,
+        has_moved: bool,
+    ) -> Self {
         Piece {
-            unicode: Self::unicode(&piece_colour, &piece_type),
+            unicode: Self::unicode(piece_colour, &piece_type),
             colour: piece_colour,
             piece_type,
             position,
+            has_moved,
         }
     }
 
@@ -46,7 +53,11 @@ impl Piece {
         &self.position
     }
 
-    fn unicode(piece_colour: &PieceColour, piece_type: &PieceType) -> String {
+    pub fn has_moved(&self) -> &bool {
+        &self.has_moved
+    }
+
+    fn unicode(piece_colour: PieceColour, piece_type: &PieceType) -> String {
         match (piece_colour, piece_type) {
             // Black pieces
             (PieceColour::Black, PieceType::Pawn) => "♟",

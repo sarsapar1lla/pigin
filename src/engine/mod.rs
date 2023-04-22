@@ -1,5 +1,8 @@
 use crate::model::{Piece, PieceColour, Ply};
 
+mod move_generator;
+mod transformer;
+
 pub struct Engine {
     pieces: Vec<Piece>,
 }

@@ -1,6 +1,8 @@
 use crate::model::piece::PieceType;
 use crate::model::position::Position;
 
+use super::PieceColour;
+
 static PLY_PATTERN: &str = r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?$";
 
 #[derive(Debug)]
@@ -17,13 +19,15 @@ impl std::error::Error for PlyParseError {}
 #[derive(Debug, PartialEq, Eq)]
 pub struct Movement {
     piece_type: PieceType,
+    piece_colour: PieceColour,
     position: Position,
 }
 
 impl Movement {
-    pub fn new(piece_type: PieceType, position: Position) -> Self {
+    pub fn new(piece_type: PieceType, piece_colour: PieceColour, position: Position) -> Self {
         Movement {
             piece_type,
+            piece_colour,
             position,
         }
     }
@@ -42,8 +46,8 @@ pub enum Ply {
         movement: Movement,
         qualifier: Option<MoveQualifier>,
     },
-    KingsideCastle,
-    QueensideCastle,
+    KingsideCastle(PieceColour),
+    QueensideCastle(PieceColour),
     Promotion {
         movement: Movement,
         promotes_to: PieceType,
