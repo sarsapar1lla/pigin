@@ -12,8 +12,6 @@ jobs:
 
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
 
       - name: Test with cargo
         run: cargo test
