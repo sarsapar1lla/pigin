@@ -9,7 +9,7 @@ use crate::model::{MoveQualifier, Movement, Ply};
 
 static COLS: &str = "abcdefgh";
 static ROWS: &str = "12345678";
-static PLY_PATTERN: &str = r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?$";
+static PLY_PATTERN: &str = r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?(\+|#)?$";
 
 pub fn parse_ply(s: &str, colour_to_move: PieceColour) -> Result<Ply, ParseError> {
     // Handle castling cases first
@@ -404,6 +404,38 @@ mod tests {
                 ),
                 promotes_to: PieceType::Knight,
                 qualifier: Some(MoveQualifier::Col(4))
+            }
+        )
+    }
+
+    #[test]
+    fn parses_check() {
+        let ply = parse_ply("e4+", PieceColour::White).unwrap();
+        assert_eq!(
+            ply,
+            Ply::Move {
+                movement: Movement::new(
+                    PieceType::Pawn,
+                    PieceColour::White,
+                    Position::new(3, 4).unwrap()
+                ),
+                qualifier: None
+            }
+        )
+    }
+
+    #[test]
+    fn parses_checkmate() {
+        let ply = parse_ply("e4#", PieceColour::White).unwrap();
+        assert_eq!(
+            ply,
+            Ply::Move {
+                movement: Movement::new(
+                    PieceType::Pawn,
+                    PieceColour::White,
+                    Position::new(3, 4).unwrap()
+                ),
+                qualifier: None
             }
         )
     }

@@ -3,8 +3,6 @@ use crate::model::position::Position;
 
 use super::PieceColour;
 
-static PLY_PATTERN: &str = r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?$";
-
 #[derive(Debug)]
 pub struct PlyParseError(String);
 
@@ -53,4 +51,21 @@ pub enum Ply {
         promotes_to: PieceType,
         qualifier: Option<MoveQualifier>,
     },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct PlyMetadata {
+    move_number: i8,
+    ply: Ply,
+    comment: Option<String>,
+}
+
+impl PlyMetadata {
+    pub fn new(move_number: i8, ply: Ply, comment: Option<String>) -> Self {
+        PlyMetadata {
+            move_number,
+            ply,
+            comment,
+        }
+    }
 }

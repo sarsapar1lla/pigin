@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Piece, PieceColour, Ply};
+use super::{Piece, PieceColour, PlyMetadata};
 
 pub type Tags = HashMap<String, String>;
 
@@ -10,6 +10,17 @@ pub enum GameResult {
     WhiteWin,
     Draw,
     Ongoing,
+}
+
+impl ToString for GameResult {
+    fn to_string(&self) -> String {
+        match self {
+            Self::BlackWin => "0-1".to_string(),
+            Self::WhiteWin => "1-0".to_string(),
+            Self::Draw => "1/2-1/2".to_string(),
+            Self::Ongoing => "*".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -46,11 +57,11 @@ pub struct Pgn {
     tags: Tags,
     fen: Fen,
     result: GameResult,
-    ply_list: Vec<Ply>,
+    ply_list: Vec<PlyMetadata>,
 }
 
 impl Pgn {
-    pub fn new(tags: Tags, fen: Fen, result: GameResult, ply_list: Vec<Ply>) -> Self {
+    pub fn new(tags: Tags, fen: Fen, result: GameResult, ply_list: Vec<PlyMetadata>) -> Self {
         Pgn {
             tags,
             fen,
@@ -71,7 +82,7 @@ impl Pgn {
         self.result
     }
 
-    pub fn ply_list(&self) -> &Vec<Ply> {
+    pub fn ply_list(&self) -> &Vec<PlyMetadata> {
         &self.ply_list
     }
 }
