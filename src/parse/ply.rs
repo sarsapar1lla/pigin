@@ -6,10 +6,15 @@ use crate::model::PieceColour;
 use crate::model::PieceType;
 use crate::model::Position;
 use crate::model::{MoveQualifier, Movement, Ply};
+use lazy_static::lazy_static;
 
 static COLS: &str = "abcdefgh";
 static ROWS: &str = "12345678";
-static PLY_PATTERN: &str = r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?(\+|#)?$";
+
+lazy_static! {
+    static ref PLY_REGEX: Regex =
+        Regex::new(r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?(\+|#)?$").unwrap();
+}
 
 pub fn parse_ply(s: &str, colour_to_move: PieceColour) -> Result<Ply, ParseError> {
     // Handle castling cases first
@@ -98,8 +103,7 @@ struct RegexMatch {
 }
 
 fn match_with_regex(s: &str) -> Result<RegexMatch, ParseError> {
-    let captures = Regex::new(PLY_PATTERN)
-        .map_err(|_| ParseError("Could not compile regex pattern".to_string()))?
+    let captures = PLY_REGEX
         .captures(s)
         .ok_or_else(|| ParseError(format!("'{s}' could not be parsed")))?;
 

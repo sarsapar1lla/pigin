@@ -8,8 +8,15 @@ use super::{
     ply::parse_ply,
 };
 use crate::model::{Fen, GameResult, Pgn, Piece, PieceColour, PlyMetadata, Position, Tags};
+use lazy_static::lazy_static;
 
 pub static DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+lazy_static! {
+    static ref TAG_REGEX: Regex = Regex::new(r#"^\[(\w+) "(.+)"\]$"#).unwrap();
+    static ref WHITE_MOVE_REGEX: Regex = Regex::new(r"^(\d+)\. ?([=\+#\w-]+)( \{.+\})?").unwrap();
+    static ref BLACK_MOVE_REGEX: Regex = Regex::new(r"^ ([=\+#\w-]+)( \{.+\})?").unwrap();
+}
 
 pub fn parse_file(content: &str) -> Result<Pgn, ParseError> {
     let lines = content.lines();
@@ -27,7 +34,7 @@ pub fn parse_file(content: &str) -> Result<Pgn, ParseError> {
             .ok_or_else(|| ParseError("Missing 'Result' tag".to_string()))?,
     )?;
 
-    let cleaned_remaining = clean_move_string(remaining, &result);
+    let cleaned_remaining = clean_move_string(remaining, result);
 
     let ply_list = parse_ply_list(cleaned_remaining)?;
 
@@ -51,9 +58,9 @@ fn parse_tags(lines: Lines) -> Result<(Tags, String), ParseError> {
     Ok((tags, remaining))
 }
 
-fn clean_move_string(mut move_string: String, result: &GameResult) -> String {
+fn clean_move_string(mut move_string: String, result: GameResult) -> String {
     // Result is included at the end of the file if not ongoing
-    if result != &GameResult::Ongoing {
+    if result != GameResult::Ongoing {
         move_string = move_string.replace(&result.to_string(), "");
     }
 
@@ -65,15 +72,10 @@ fn clean_move_string(mut move_string: String, result: &GameResult) -> String {
 }
 
 fn parse_ply_list(mut remaining: String) -> Result<Vec<PlyMetadata>, ParseError> {
-    let white_move_regex = Regex::new(r"^(\d+)\. ?([=\+#\w-]+)( \{.+\})?")
-        .map_err(|e| ParseError(format!("Failed to compile regex: {e}")))?;
-    let black_move_regex = Regex::new(r"^ ([=\+#\w-]+)( \{.+\})?")
-        .map_err(|e| ParseError(format!("Failed to compile regex: {e}")))?;
-
     let mut ply_list: Vec<PlyMetadata> = Vec::new();
 
     loop {
-        let white_captures = white_move_regex.captures(&remaining).ok_or_else(|| {
+        let white_captures = WHITE_MOVE_REGEX.captures(&remaining).ok_or_else(|| {
             ParseError(format!("Failed to capture white move given '{remaining}'"))
         })?;
 
@@ -109,7 +111,7 @@ fn parse_ply_list(mut remaining: String) -> Result<Vec<PlyMetadata>, ParseError>
             break;
         }
 
-        let black_captures = black_move_regex.captures(&remaining).ok_or_else(|| {
+        let black_captures = BLACK_MOVE_REGEX.captures(&remaining).ok_or_else(|| {
             ParseError(format!("Failed to capture black move given '{remaining}'"))
         })?;
 
@@ -141,16 +143,20 @@ fn parse_ply_list(mut remaining: String) -> Result<Vec<PlyMetadata>, ParseError>
 }
 
 fn tag_from_string(s: &str) -> Result<Option<(String, String)>, ParseError> {
-    let captures = Regex::new(r#"^\[(\w+) "(.+)"\]$"#)
-        .map_err(|e| ParseError(format!("Failed to compile regex: {e}")))?
-        .captures(s);
+    let captures = TAG_REGEX.captures(s);
 
     match captures {
         None => Ok(None),
         Some(captures) => {
-            let key = captures.get(1).unwrap().as_str().to_string();
+            let key = captures
+                .get(1)
+                .map(|capture| capture.as_str().to_string())
+                .ok_or_else(|| ParseError(format!("Failed to capture tag key from '{s}'")))?;
 
-            let value = captures.get(2).unwrap().as_str().to_string();
+            let value = captures
+                .get(2)
+                .map(|capture| capture.as_str().to_string())
+                .ok_or_else(|| ParseError(format!("Failed to capture tag value from '{s}'")))?;
 
             Ok(Some((key, value)))
         }
