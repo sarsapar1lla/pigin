@@ -1,3 +1,7 @@
 #![allow(dead_code)]
 
-fn main() {}
+use fenrs::parse;
+
+fn main() {
+    parse();
+}
