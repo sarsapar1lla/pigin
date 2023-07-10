@@ -1,18 +1,31 @@
 use nom::error::ErrorKind;
 use nom::error::ParseError;
 
-#[derive(Debug, PartialEq)]
-pub enum ParserError {
-    Internal(String),
-    Nom(ErrorKind),
+pub struct PgnParseError(String);
+
+impl PgnParseError {
+    pub fn new(message: impl Into<String>) -> Self {
+        PgnParseError(message.into())
+    }
 }
 
-impl ParseError<&str> for ParserError {
-    fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
-        ParserError::Nom(kind)
+impl ParseError<&str> for PgnParseError {
+    fn append(input: &str, kind: ErrorKind, other: Self) -> Self {
+        let message = format!("Parsing input '{input}' failed: '{}'", other.0);
+        PgnParseError(message)
     }
 
-    fn append(_: &str, _: ErrorKind, other: Self) -> Self {
-        other
+    fn from_char(input: &str, _: char) -> Self {
+        let message = format!("Parsing input '{input}' failed");
+        PgnParseError(message)
+    }
+
+    fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
+        let message = format!("Parsing input '{input}' failed: '{kind:?}'");
+        PgnParseError(message)
+    }
+
+    fn or(self, other: Self) -> Self {
+        self
     }
 }

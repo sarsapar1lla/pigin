@@ -36,12 +36,12 @@ impl Position {
         Ok(Position { row, col })
     }
 
-    pub fn row(&self) -> &i8 {
-        &self.row
+    pub fn row(&self) -> i8 {
+        self.row
     }
 
-    pub fn col(&self) -> &i8 {
-        &self.col
+    pub fn col(&self) -> i8 {
+        self.col
     }
 }
 
