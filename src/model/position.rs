@@ -18,7 +18,7 @@ impl std::fmt::Display for InvalidPositionError {
 
 impl std::error::Error for InvalidPositionError {}
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Position {
     row: i8,
     col: i8,

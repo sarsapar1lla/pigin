@@ -1,6 +1,7 @@
 use nom::error::ErrorKind;
 use nom::error::ParseError;
 
+#[derive(Debug)]
 pub struct PgnParseError(String);
 
 impl PgnParseError {
@@ -10,7 +11,7 @@ impl PgnParseError {
 }
 
 impl ParseError<&str> for PgnParseError {
-    fn append(input: &str, kind: ErrorKind, other: Self) -> Self {
+    fn append(input: &str, _kind: ErrorKind, other: Self) -> Self {
         let message = format!("Parsing input '{input}' failed: '{}'", other.0);
         PgnParseError(message)
     }
@@ -25,7 +26,7 @@ impl ParseError<&str> for PgnParseError {
         PgnParseError(message)
     }
 
-    fn or(self, other: Self) -> Self {
+    fn or(self, _other: Self) -> Self {
         self
     }
 }

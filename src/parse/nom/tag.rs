@@ -1,6 +1,6 @@
 use nom::character::complete::char;
 use nom::{
-    bytes::complete::{tag, take_until},
+    bytes::complete::take_until,
     character::complete::line_ending,
     multi::many_till,
     sequence::{delimited, separated_pair, terminated},
@@ -10,13 +10,13 @@ use nom::{
 use crate::model::Tags;
 
 pub fn parse_tags(input: &str) -> IResult<&str, Tags> {
-    let (input, (tags, _)) = many_till(parse_tag, tag("\n"))(input)?;
+    let (remaining, (tags, _)) = many_till(parse_tag, line_ending)(input)?;
     let tags: Tags = tags
         .into_iter()
         .map(|pair: (&str, &str)| (pair.0.to_string(), pair.1.to_string()))
         .collect();
 
-    Ok((input, tags))
+    Ok((remaining, tags))
 }
 
 fn parse_tag(input: &str) -> IResult<&str, (&str, &str)> {
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn parses_tags() {
-        let result = parse_tags("[Tag1 \"Value 1\"]\n[Tag2 \"Value 2\"]\n\n1. e4").unwrap();
+        let result = parse_tags("[Tag1 \"Value 1\"]\n[Tag2 \"Value 2\"]\n\r\n1. e4").unwrap();
         let mut expected = HashMap::new();
         expected.insert("Tag1".to_string(), "Value 1".to_string());
         expected.insert("Tag2".to_string(), "Value 2".to_string());

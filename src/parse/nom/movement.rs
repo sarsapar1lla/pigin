@@ -13,16 +13,17 @@ use nom::{
 };
 
 use super::ply::ply;
+use super::result::parse_result;
 
 pub fn parse_moves(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
-    fold_many0(
+    terminated(fold_many0(
         parse_move,
         Vec::new,
         |mut acc: Vec<PlyMetadata>, mut item: Vec<PlyMetadata>| {
             acc.append(&mut item);
             acc
         },
-    )(input)
+    ), parse_result)(input)
 }
 
 fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
@@ -66,7 +67,7 @@ mod tests {
     use super::*;
 
     mod parse_move_tests {
-        use crate::model::{MoveQualifier, Movement, PieceColour, PieceType, Ply, Position};
+        use crate::model::{Check, MoveQualifier, Movement, PieceColour, PieceType, Ply, Position};
 
         use super::*;
 
@@ -78,7 +79,7 @@ mod tests {
 
         #[test]
         fn parses_move() {
-            let result = parse_move("1. e4 e5 2. d4 exd4").unwrap();
+            let result = parse_move("1. e4 e5 2. d4 exd4+").unwrap();
             let expected_ply = vec![
                 PlyMetadata::new(
                     1,
@@ -89,6 +90,7 @@ mod tests {
                             Position::new(3, 4).unwrap(),
                         ),
                         qualifier: None,
+                        check: None,
                     },
                     None,
                 ),
@@ -101,17 +103,18 @@ mod tests {
                             Position::new(4, 4).unwrap(),
                         ),
                         qualifier: None,
+                        check: None,
                     },
                     None,
                 ),
             ];
-            assert_eq!(result, ("2. d4 exd4", expected_ply))
+            assert_eq!(result, ("2. d4 exd4+", expected_ply))
         }
 
         #[test]
         fn parses_move_with_comments() {
             let result =
-                parse_move("2. Bcd3 {A comment} O-O ; Another comment\n3. f7 Qb2").unwrap();
+                parse_move("2. Bcd3 {A comment} O-O+ ; Another comment\n3. f7 Qb2").unwrap();
             let expected_ply = vec![
                 PlyMetadata::new(
                     2,
@@ -122,12 +125,16 @@ mod tests {
                             Position::new(2, 3).unwrap(),
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
+                        check: None,
                     },
                     Some("A comment".to_string()),
                 ),
                 PlyMetadata::new(
                     2,
-                    Ply::KingsideCastle(PieceColour::Black),
+                    Ply::KingsideCastle {
+                        colour: PieceColour::Black,
+                        check: Some(Check::Check),
+                    },
                     Some("Another comment".to_string()),
                 ),
             ];

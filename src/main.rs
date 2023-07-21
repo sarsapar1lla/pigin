@@ -2,6 +2,4 @@
 
 use fenrs::parse;
 
-fn main() {
-    parse();
-}
+fn main() {}

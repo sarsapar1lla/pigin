@@ -1,4 +1,4 @@
-use nom::{IResult, sequence::pair, combinator::map_res, character::complete::one_of};
+use nom::{character::complete::one_of, combinator::map_res, sequence::pair, IResult};
 
 use crate::model::Position;
 

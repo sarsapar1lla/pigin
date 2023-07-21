@@ -21,10 +21,7 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub fn new(
-        piece_colour: PieceColour,
-        piece_type: PieceType,
-    ) -> Self {
+    pub fn new(piece_colour: PieceColour, piece_type: PieceType) -> Self {
         Piece {
             colour: piece_colour,
             piece_type,

@@ -39,17 +39,31 @@ pub enum MoveQualifier {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum Check {
+    Check,
+    Checkmate,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Ply {
     Move {
         movement: Movement,
         qualifier: Option<MoveQualifier>,
+        check: Option<Check>,
     },
-    KingsideCastle(PieceColour),
-    QueensideCastle(PieceColour),
+    KingsideCastle {
+        colour: PieceColour,
+        check: Option<Check>,
+    },
+    QueensideCastle {
+        colour: PieceColour,
+        check: Option<Check>,
+    },
     Promotion {
         movement: Movement,
         promotes_to: PieceType,
         qualifier: Option<MoveQualifier>,
+        check: Option<Check>,
     },
 }
 

@@ -14,38 +14,38 @@ use crate::model::{Piece, PieceColour, PieceType, Position, MAX_POSITION};
 // }
 
 // impl MoveGenerator {
-    // pub fn for_piece(piece: &Piece) -> Self {
-    //     let colour = piece.colour();
-    //     let piece_type = piece.piece_type();
+// pub fn for_piece(piece: &Piece) -> Self {
+//     let colour = piece.colour();
+//     let piece_type = piece.piece_type();
 
-    //     let linear_transformers = {
-    //         let mut transformers = Vec::from(WHITE_FORWARD_TRANSFORMER);
-    //         transformers.extend_from_slice(BLACK_FORWARD_TRANSFORMER);
-    //         transformers.extend_from_slice(SIDEWAYS_TRANFORMERS);
-    //         transformers
-    //     };
+//     let linear_transformers = {
+//         let mut transformers = Vec::from(WHITE_FORWARD_TRANSFORMER);
+//         transformers.extend_from_slice(BLACK_FORWARD_TRANSFORMER);
+//         transformers.extend_from_slice(SIDEWAYS_TRANFORMERS);
+//         transformers
+//     };
 
-    //     let all_transformers = {
-    //         let mut transformers = linear_transformers.clone();
-    //         transformers.extend_from_slice(DIAGONAL_TRANSFORMERS);
-    //         transformers
-    //     };
+//     let all_transformers = {
+//         let mut transformers = linear_transformers.clone();
+//         transformers.extend_from_slice(DIAGONAL_TRANSFORMERS);
+//         transformers
+//     };
 
-    //     match piece_type {
-    //         PieceType::Pawn => {
-    //             if *colour == PieceColour::White {
-    //                 MoveGenerator::new(1, WHITE_FORWARD_TRANSFORMER.into())
-    //             } else {
-    //                 MoveGenerator::new(1, BLACK_FORWARD_TRANSFORMER.into())
-    //             }
-    //         },
-    //         PieceType::Knight => MoveGenerator::new(1, KNIGHT_TRANSFORMERS.into()),
-    //         PieceType::Bishop => MoveGenerator::new(MAX_POSITION, DIAGONAL_TRANSFORMERS.into()),
-    //         PieceType::Rook => MoveGenerator::new(MAX_POSITION, linear_transformers),
-    //         PieceType::Queen => MoveGenerator::new(MAX_POSITION, all_transformers.clone()),
-    //         PieceType::King => MoveGenerator::new(1, all_transformers)
-    //     }
-    // }
+//     match piece_type {
+//         PieceType::Pawn => {
+//             if *colour == PieceColour::White {
+//                 MoveGenerator::new(1, WHITE_FORWARD_TRANSFORMER.into())
+//             } else {
+//                 MoveGenerator::new(1, BLACK_FORWARD_TRANSFORMER.into())
+//             }
+//         },
+//         PieceType::Knight => MoveGenerator::new(1, KNIGHT_TRANSFORMERS.into()),
+//         PieceType::Bishop => MoveGenerator::new(MAX_POSITION, DIAGONAL_TRANSFORMERS.into()),
+//         PieceType::Rook => MoveGenerator::new(MAX_POSITION, linear_transformers),
+//         PieceType::Queen => MoveGenerator::new(MAX_POSITION, all_transformers.clone()),
+//         PieceType::King => MoveGenerator::new(1, all_transformers)
+//     }
+// }
 
 //     fn new(max_movement: i8, transformers: Vec<Box<dyn Transformer>>) -> Self {
 //         MoveGenerator {

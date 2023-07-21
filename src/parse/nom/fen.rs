@@ -1,14 +1,13 @@
-use std::fmt::format;
-
-use crate::model::{Fen, Piece, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION};
+use crate::model::AvailableCastle;
+use crate::model::{
+    Board, Fen, Piece, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION,
+};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::u8;
-use crate::model::AvailableCastle;
+use nom::character::complete::{i8, u8};
+use nom::combinator::all_consuming;
 use nom::{
-    character::{
-        complete::{i8, one_of},
-    },
+    character::complete::one_of,
     combinator::{map, map_res},
     multi::fold_many0,
     sequence::{terminated, tuple},
@@ -17,26 +16,81 @@ use nom::{
 
 use super::error::PgnParseError;
 use super::position::position;
+use crate::model::BoardBuilder;
 
 #[derive(Debug, PartialEq, Eq)]
 enum FenCharacter {
-    Empty(u8),
+    Empty(i8),
     NewRow,
     Piece(Piece),
 }
 
+// TODO: add tests
 pub fn parse_fen(input: &str) -> IResult<&str, Fen> {
-    let parser = tuple((fen_characters, active_colour, available_castles, en_passant_square, clock, clock));
-    todo!()
+    let parser = all_consuming(tuple((
+        fen_characters,
+        active_colour,
+        available_castles,
+        en_passant_square,
+        clock,
+        clock,
+    )));
+    map_res(parser, |elements| {
+        let starting_board = board_from(elements.0, elements.2, elements.3)?;
+        Ok::<Fen, PgnParseError>(Fen::new(starting_board, elements.1, elements.5))
+    })(input)
+}
+
+// TODO: add tests
+fn board_from(
+    fen_characters: Vec<FenCharacter>,
+    available_castles: Vec<AvailableCastle>,
+    en_passant_square: Option<Position>,
+) -> Result<Board, PgnParseError> {
+    let mut builder = BoardBuilder::new();
+
+    builder.available_castles(available_castles);
+
+    if let Some(position) = en_passant_square {
+        builder.en_passant_square(position);
+    }
+
+    let mut row = MAX_POSITION;
+    let mut col = MIN_POSITION;
+
+    for character in fen_characters {
+        match character {
+            FenCharacter::NewRow => {
+                row -= 1;
+                col = MIN_POSITION
+            }
+            FenCharacter::Empty(spaces) => col += spaces,
+            FenCharacter::Piece(piece) => {
+                let position = Position::new(row, col).map_err(|e| {
+                    PgnParseError::new(format!("Failed to create position for fen character: {e}"))
+                })?;
+                builder.piece(piece, position);
+            }
+        }
+    }
+
+    Ok(builder.build())
 }
 
 fn fen_characters(input: &str) -> IResult<&str, Vec<FenCharacter>> {
     let parser = alt((new_row, empty_spaces, piece));
 
-    terminated(fold_many0(parser, Vec::new, |mut acc: Vec<FenCharacter>, item: FenCharacter| {
-        acc.push(item);
-        acc
-    }), tag(" "))(input)
+    terminated(
+        fold_many0(
+            parser,
+            Vec::new,
+            |mut acc: Vec<FenCharacter>, item: FenCharacter| {
+                acc.push(item);
+                acc
+            },
+        ),
+        tag(" "),
+    )(input)
 }
 
 fn new_row(input: &str) -> IResult<&str, FenCharacter> {
@@ -44,9 +98,11 @@ fn new_row(input: &str) -> IResult<&str, FenCharacter> {
 }
 
 fn empty_spaces(input: &str) -> IResult<&str, FenCharacter> {
-    map_res(u8, |i| match i {
+    map_res(i8, |i| match i {
         i if (i >= 1) & (i <= 8) => Ok(FenCharacter::Empty(i)),
-        _ => Err(PgnParseError::new(format!("'{i}' is not a valid empty space")))
+        _ => Err(PgnParseError::new(format!(
+            "'{i}' is not a valid empty space"
+        ))),
     })(input)
 }
 
@@ -86,12 +142,13 @@ fn active_colour(input: &str) -> IResult<&str, PieceColour> {
 fn available_castles(input: &str) -> IResult<&str, Vec<AvailableCastle>> {
     let none_parser = map(tag("-"), |_| Vec::new());
     let some_parser = fold_many0(
-        available_castle, 
-        Vec::new, 
+        available_castle,
+        Vec::new,
         |mut acc: Vec<AvailableCastle>, item: AvailableCastle| {
             acc.push(item);
             acc
-    });
+        },
+    );
     terminated(alt((none_parser, some_parser)), tag(" "))(input)
 }
 
@@ -101,7 +158,9 @@ fn available_castle(input: &str) -> IResult<&str, AvailableCastle> {
         'Q' => Ok(AvailableCastle::WhiteQueenside),
         'k' => Ok(AvailableCastle::BlackKingside),
         'q' => Ok(AvailableCastle::BlackQueenside),
-        _ => Err(PgnParseError::new(format!("'{c}' is not a valid available castle")))
+        _ => Err(PgnParseError::new(format!(
+            "'{c}' is not a valid available castle"
+        ))),
     })(input)
 }
 
@@ -192,10 +251,7 @@ mod tests {
                 result,
                 (
                     "j",
-                    FenCharacter::Piece(Piece::new(
-                        PieceColour::Black,
-                        PieceType::Knight,
-                    ))
+                    FenCharacter::Piece(Piece::new(PieceColour::Black, PieceType::Knight,))
                 )
             )
         }
@@ -235,7 +291,17 @@ mod tests {
         #[test]
         fn parses_available_castles() {
             let result = available_castles("KQq something").unwrap();
-            assert_eq!(result, ("something", vec![AvailableCastle::WhiteKingside, AvailableCastle::WhiteQueenside, AvailableCastle::BlackQueenside]))
+            assert_eq!(
+                result,
+                (
+                    "something",
+                    vec![
+                        AvailableCastle::WhiteKingside,
+                        AvailableCastle::WhiteQueenside,
+                        AvailableCastle::BlackQueenside
+                    ]
+                )
+            )
         }
     }
 

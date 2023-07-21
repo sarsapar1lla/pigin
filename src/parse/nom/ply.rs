@@ -7,14 +7,12 @@ use nom::{
     IResult,
 };
 
-use crate::model::{MoveQualifier, Movement, PieceColour};
+use crate::model::{Check, MoveQualifier, Movement, PieceColour};
 use crate::model::{PieceType, Ply, Position};
 
 use super::error::PgnParseError;
 
-use super::position::{position, row, column};
-
-// use super::error::ParserError;
+use super::position::{column, position, row};
 
 pub fn ply(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
     piece_move(input, colour)
@@ -23,9 +21,14 @@ pub fn ply(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
 }
 
 fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
-    let (remainder, (maybe_piece_type, (maybe_move_qualifier, position), maybe_promotion)) =
+    let (remainder, (maybe_piece_type, (maybe_move_qualifier, position), maybe_promotion, check)) =
         terminated(
-            tuple((opt(piece_type), position_with_qualifier, opt(promotion))),
+            tuple((
+                opt(piece_type),
+                position_with_qualifier,
+                opt(promotion),
+                opt(check),
+            )),
             ply_terminator,
         )(input)?;
 
@@ -41,6 +44,7 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
             Ply::Move {
                 movement,
                 qualifier: maybe_move_qualifier,
+                check: check,
             },
         )),
         Some(promotion) => Ok((
@@ -49,6 +53,7 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
                 movement,
                 promotes_to: promotion,
                 qualifier: maybe_move_qualifier,
+                check: check,
             },
         )),
     }
@@ -86,15 +91,21 @@ fn move_qualifier(input: &str) -> IResult<&str, MoveQualifier> {
 }
 
 fn kingside_castle(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
-    let castle_parser = alt((tag("O-O"), tag("0-0")));
+    let castle_parser = pair(alt((tag("O-O"), tag("0-0"))), opt(check));
     let parser = terminated(castle_parser, ply_terminator);
-    map(parser, |_| Ply::KingsideCastle(colour))(input)
+    map(parser, |elements| Ply::KingsideCastle {
+        colour,
+        check: elements.1,
+    })(input)
 }
 
 fn queenside_castle(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
-    let castle_parser = alt((tag("O-O-O"), tag("0-0-0")));
+    let castle_parser = pair(alt((tag("O-O-O"), tag("0-0-0"))), opt(check));
     let parser = terminated(castle_parser, ply_terminator);
-    map(parser, |_| Ply::QueensideCastle(colour))(input)
+    map(parser, |elements| Ply::QueensideCastle {
+        colour,
+        check: elements.1,
+    })(input)
 }
 
 fn piece_type(input: &str) -> IResult<&str, PieceType> {
@@ -111,6 +122,14 @@ fn piece_type(input: &str) -> IResult<&str, PieceType> {
 fn ply_terminator(input: &str) -> IResult<&str, &str> {
     // TODO: add checks and checkmate here
     alt((space1, line_ending))(input)
+}
+
+fn check(input: &str) -> IResult<&str, Check> {
+    map_res(one_of("+#"), |c: char| match c {
+        '+' => Ok(Check::Check),
+        '#' => Ok(Check::Checkmate),
+        _ => Err(PgnParseError::new(format!("'{c}' is not a valid check"))),
+    })(input)
 }
 
 #[cfg(test)]
@@ -145,25 +164,91 @@ mod tests {
         #[test]
         fn parses_kingside_castle() {
             let result = kingside_castle("O-O f6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::KingsideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_kingside_castle_at_line_end() {
             let result = kingside_castle("O-O\nf6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::KingsideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_kingside_castle_with_zeros() {
             let result = kingside_castle("0-0 f6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::KingsideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_kingside_castle_with_zeros_at_line_end() {
             let result = kingside_castle("0-0\nf6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::KingsideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
+
+        #[test]
+        fn parses_kingside_castle_with_check() {
+            let result = kingside_castle("O-O+ f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: Some(Check::Check)
+                    }
+                )
+            )
+        }
+
+        #[test]
+        fn parses_kingside_castle_with_checkmate() {
+            let result = kingside_castle("O-O# f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: Some(Check::Checkmate)
+                    }
+                )
+            )
         }
     }
 
@@ -179,25 +264,61 @@ mod tests {
         #[test]
         fn parses_queenside_castle() {
             let result = queenside_castle("O-O-O f6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::QueensideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_queenside_castle_at_line_end() {
             let result = queenside_castle("O-O-O\nf6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::QueensideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_queenside_castle_with_zeros() {
             let result = queenside_castle("0-0-0 f6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::QueensideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
 
         #[test]
         fn parses_queenside_castle_with_zeros_at_line_end() {
             let result = queenside_castle("0-0-0\nf6", PieceColour::White).unwrap();
-            assert_eq!(result, ("f6", Ply::QueensideCastle(PieceColour::White)))
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
         }
     }
 
@@ -223,7 +344,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(5, 0).unwrap()
                         ),
-                        qualifier: None
+                        qualifier: None,
+                        check: None,
                     }
                 )
             )
@@ -242,7 +364,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(5, 1).unwrap()
                         ),
-                        qualifier: Some(MoveQualifier::Col(0))
+                        qualifier: Some(MoveQualifier::Col(0)),
+                        check: None,
                     }
                 )
             )
@@ -261,7 +384,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(5, 1).unwrap()
                         ),
-                        qualifier: Some(MoveQualifier::Position(Position::new(4, 0).unwrap()))
+                        qualifier: Some(MoveQualifier::Position(Position::new(4, 0).unwrap())),
+                        check: None,
                     }
                 )
             )
@@ -281,7 +405,8 @@ mod tests {
                             Position::new(7, 0).unwrap()
                         ),
                         promotes_to: PieceType::Rook,
-                        qualifier: None
+                        qualifier: None,
+                        check: None,
                     }
                 )
             )
@@ -301,7 +426,8 @@ mod tests {
                             Position::new(7, 1).unwrap()
                         ),
                         promotes_to: PieceType::Rook,
-                        qualifier: Some(MoveQualifier::Col(0))
+                        qualifier: Some(MoveQualifier::Col(0)),
+                        check: None,
                     }
                 )
             )
@@ -320,7 +446,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(6, 3).unwrap()
                         ),
-                        qualifier: None
+                        qualifier: None,
+                        check: None,
                     }
                 )
             )
@@ -339,7 +466,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(6, 3).unwrap()
                         ),
-                        qualifier: Some(MoveQualifier::Col(2))
+                        qualifier: Some(MoveQualifier::Col(2)),
+                        check: None,
                     }
                 )
             )
@@ -358,7 +486,8 @@ mod tests {
                             PieceColour::White,
                             Position::new(6, 3).unwrap()
                         ),
-                        qualifier: Some(MoveQualifier::Row(5))
+                        qualifier: Some(MoveQualifier::Row(5)),
+                        check: None,
                     }
                 )
             )
@@ -377,7 +506,48 @@ mod tests {
                             PieceColour::White,
                             Position::new(6, 3).unwrap()
                         ),
-                        qualifier: Some(MoveQualifier::Position(Position::new(5, 1).unwrap()))
+                        qualifier: Some(MoveQualifier::Position(Position::new(5, 1).unwrap())),
+                        check: None,
+                    }
+                )
+            )
+        }
+
+        #[test]
+        fn parses_piece_move_with_check() {
+            let result = piece_move("e4+ h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(3, 4).unwrap()
+                        ),
+                        qualifier: None,
+                        check: Some(Check::Check),
+                    }
+                )
+            )
+        }
+
+        #[test]
+        fn parses_piece_move_with_checkmate() {
+            let result = piece_move("e4# h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(3, 4).unwrap()
+                        ),
+                        qualifier: None,
+                        check: Some(Check::Checkmate),
                     }
                 )
             )
@@ -471,6 +641,28 @@ mod tests {
                 result,
                 ("xd5", MoveQualifier::Position(Position::new(3, 4).unwrap()))
             )
+        }
+    }
+
+    mod check_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_check() {
+            let result = check("something");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_check() {
+            let result = check("+ something").unwrap();
+            assert_eq!(result, (" something", Check::Check))
+        }
+
+        #[test]
+        fn parses_checkmate() {
+            let result = check("# something").unwrap();
+            assert_eq!(result, (" something", Check::Checkmate))
         }
     }
 }
