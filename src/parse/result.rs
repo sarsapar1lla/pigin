@@ -4,7 +4,7 @@ use crate::model::GameResult;
 
 use super::error::PgnParseError;
 
-pub fn parse_result(input: &str) -> IResult<&str, GameResult> {
+pub fn parse(input: &str) -> IResult<&str, GameResult> {
     let parser = alt((tag("1-0"), tag("0-1"), tag("1/2-1/2"), tag("*")));
     map_res(parser, |result| match result {
         "1-0" => Ok(GameResult::WhiteWin),
@@ -23,13 +23,13 @@ mod tests {
 
     #[test]
     fn returns_err_if_not_game_result() {
-        let result = parse_result("something");
+        let result = parse("something");
         assert!(result.is_err())
     }
 
     #[test]
     fn parses_result() {
-        let result = parse_result("0-1 something").unwrap();
+        let result = parse("0-1 something").unwrap();
         assert_eq!(result, (" something", GameResult::BlackWin))
     }
 }

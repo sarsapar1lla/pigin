@@ -15,7 +15,7 @@ use nom::{
 };
 
 use super::error::PgnParseError;
-use super::position::position;
+use super::position;
 use crate::model::BoardBuilder;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -25,7 +25,7 @@ enum FenCharacter {
     Piece(Piece),
 }
 
-pub fn parse_fen(input: &str) -> IResult<&str, Fen> {
+pub fn parse(input: &str) -> IResult<&str, Fen> {
     let parser = all_consuming(tuple((
         fen_characters,
         active_colour,
@@ -164,7 +164,7 @@ fn available_castle(input: &str) -> IResult<&str, AvailableCastle> {
 
 fn en_passant_square(input: &str) -> IResult<&str, Option<Position>> {
     let none_parser = map(tag("-"), |_| None);
-    let some_parser = map(position, Option::Some);
+    let some_parser = map(position::parse, Option::Some);
 
     terminated(alt((none_parser, some_parser)), tag(" "))(input)
 }
@@ -186,21 +186,21 @@ mod tests {
 
         #[test]
         fn returns_err_if_not_fen() {
-            let result = parse_fen("something");
+            let result = parse("something");
             assert!(result.is_err())
         }
 
         #[test]
         fn returns_err_if_whole_input_not_consumed() {
             let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5 something";
-            let result = parse_fen(fen_string);
+            let result = parse(fen_string);
             assert!(result.is_err())
         }
 
         #[test]
         fn parses_fen() {
             let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5";
-            let result = parse_fen(fen_string).unwrap();
+            let result = parse(fen_string).unwrap();
 
             let mut board_builder = BoardBuilder::new();
             board_builder.available_castles(vec![

@@ -10,15 +10,15 @@ use nom::multi::many0;
 use nom::sequence::{pair, terminated};
 use nom::{character::complete::line_ending, combinator::all_consuming};
 
-use crate::{model::Pgn, parse::tag::parse_tags};
+use crate::model::Pgn;
 
-use self::{error::PgnParseError, fen::parse_fen, movement::parse_moves, result::parse_result};
+use self::error::PgnParseError;
 
 pub static DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 pub fn parse(input: &str) -> Result<Pgn, PgnParseError> {
     let (_, (mut tags, ply)) = all_consuming(terminated(
-        pair(parse_tags, parse_moves),
+        pair(tag::parse, movement::parse),
         many0(line_ending),
     ))(input)
     .map_err(|e| PgnParseError::new(format!("Failed to parse tags and ply: {e}")))?;
@@ -27,14 +27,14 @@ pub fn parse(input: &str) -> Result<Pgn, PgnParseError> {
         .remove("FEN")
         .unwrap_or_else(|| DEFAULT_FEN.to_string());
 
-    let (_, fen) = parse_fen(fen)
+    let (_, fen) = fen::parse(fen)
         .map_err(|e| PgnParseError::new(format!("Failed to parse FEN string: {e}")))?;
 
     let result = &tags
         .remove("Result")
         .ok_or_else(|| PgnParseError::new("Missing 'Result' tag".to_string()))?;
 
-    let (_, result) = all_consuming(parse_result)(result)
+    let (_, result) = all_consuming(result::parse)(result)
         .map_err(|e| PgnParseError::new(format!("Failed to parse result: {e}")))?;
 
     Ok(Pgn::new(tags, fen, result, ply))

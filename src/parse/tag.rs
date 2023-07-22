@@ -9,7 +9,7 @@ use nom::{
 
 use crate::model::Tags;
 
-pub fn parse_tags(input: &str) -> IResult<&str, Tags> {
+pub fn parse(input: &str) -> IResult<&str, Tags> {
     let (remaining, (tags, _)) = many_till(parse_tag, line_ending)(input)?;
     let tags: Tags = tags
         .into_iter()
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn parses_tags() {
-        let result = parse_tags("[Tag1 \"Value 1\"]\n[Tag2 \"Value 2\"]\n\r\n1. e4").unwrap();
+        let result = parse("[Tag1 \"Value 1\"]\n[Tag2 \"Value 2\"]\n\r\n1. e4").unwrap();
         let mut expected = HashMap::new();
         expected.insert("Tag1".to_string(), "Value 1".to_string());
         expected.insert("Tag2".to_string(), "Value 2".to_string());

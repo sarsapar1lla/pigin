@@ -10,11 +10,11 @@ use nom::{
 use crate::model::{Check, MoveQualifier, Movement, PieceColour};
 use crate::model::{PieceType, Ply, Position};
 
-use super::error::PgnParseError;
+use super::{error::PgnParseError, position};
 
-use super::position::{column, position, row};
+use super::position::{column, row};
 
-pub fn ply(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
+pub fn parse(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
     piece_move(input, colour)
         .or_else(|_| kingside_castle(input, colour))
         .or_else(|_| queenside_castle(input, colour))
@@ -61,8 +61,8 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
 
 fn position_with_qualifier(input: &str) -> IResult<&str, (Option<MoveQualifier>, Position)> {
     alt((
-        separated_pair(opt(move_qualifier), opt(tag("x")), position),
-        map(position, |p: Position| (None as Option<MoveQualifier>, p)),
+        separated_pair(opt(move_qualifier), opt(tag("x")), position::parse),
+        map(position::parse, |p: Position| (None as Option<MoveQualifier>, p)),
     ))(input)
 }
 

@@ -7,7 +7,7 @@ use super::error::PgnParseError;
 const ROWS: &str = "12345678";
 const COLUMNS: &str = "abcdefgh";
 
-pub fn position(input: &str) -> IResult<&str, Position> {
+pub fn parse(input: &str) -> IResult<&str, Position> {
     let parser = pair(column, row);
     map_res(parser, |position| {
         Position::new(position.1, position.0)
@@ -43,13 +43,13 @@ mod tests {
 
         #[test]
         fn returns_err_if_not_a_position() {
-            let result = position("O-O-O e4");
+            let result = parse("O-O-O e4");
             assert!(result.is_err())
         }
 
         #[test]
         fn parses_position() {
-            let result = position("e4 Nc5").unwrap();
+            let result = parse("e4 Nc5").unwrap();
             assert_eq!(result, (" Nc5", Position::new(3, 4).unwrap()))
         }
     }

@@ -12,10 +12,9 @@ use nom::{
     IResult,
 };
 
-use super::ply::ply;
-use super::result::parse_result;
+use super::{ply, result};
 
-pub fn parse_moves(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
+pub fn parse(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
     fold_many0(
         parse_move,
         Vec::new,
@@ -28,10 +27,10 @@ pub fn parse_moves(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
 
 fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
     let (remaining, move_number) = move_number(input)?;
-    let (remaining, white_ply) = ply(remaining, PieceColour::White)?;
+    let (remaining, white_ply) = ply::parse(remaining, PieceColour::White)?;
     let (remaining, white_comment) = opt(comment)(remaining)?;
 
-    let (remaining, maybe_result) = opt(parse_result)(remaining)?;
+    let (remaining, maybe_result) = opt(result::parse)(remaining)?;
 
     if maybe_result.is_some() {
         return Ok((
@@ -40,10 +39,10 @@ fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
         ));
     }
 
-    let (remaining, black_ply) = ply(remaining, PieceColour::Black)?;
+    let (remaining, black_ply) = ply::parse(remaining, PieceColour::Black)?;
     let (remaining, black_comment) = opt(comment)(remaining)?;
 
-    let (remaining, _) = opt(parse_result)(remaining)?;
+    let (remaining, _) = opt(result::parse)(remaining)?;
 
     Ok((
         remaining,
