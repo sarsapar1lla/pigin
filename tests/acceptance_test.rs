@@ -1,4 +1,4 @@
-use fenrs::parse_file;
+use fenrs::parse;
 use std::fs;
 
 #[test]
@@ -9,7 +9,7 @@ fn parses_candidates_games() {
         println!("Parsing {:?}", &file_name);
         let path = file.as_ref().unwrap().path();
         let content = fs::read_to_string(path).unwrap();
-        let pgn = parse_file(&content);
+        let pgn = parse(&content);
 
         assert!(pgn.is_ok())
     }

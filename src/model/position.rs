@@ -4,6 +4,12 @@ pub const MAX_POSITION: i8 = 7;
 #[derive(Debug, PartialEq, Eq)]
 pub struct InvalidPositionError(String);
 
+impl InvalidPositionError {
+    pub fn new(message: String) -> Self {
+        InvalidPositionError(message)
+    }
+}
+
 impl std::fmt::Display for InvalidPositionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
@@ -12,7 +18,7 @@ impl std::fmt::Display for InvalidPositionError {
 
 impl std::error::Error for InvalidPositionError {}
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Position {
     row: i8,
     col: i8,
@@ -30,12 +36,12 @@ impl Position {
         Ok(Position { row, col })
     }
 
-    pub fn row(&self) -> &i8 {
-        &self.row
+    pub fn row(&self) -> i8 {
+        self.row
     }
 
-    pub fn col(&self) -> &i8 {
-        &self.col
+    pub fn col(&self) -> i8 {
+        self.col
     }
 }
 

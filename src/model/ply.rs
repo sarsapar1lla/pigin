@@ -3,17 +3,6 @@ use crate::model::position::Position;
 
 use super::PieceColour;
 
-#[derive(Debug)]
-pub struct PlyParseError(String);
-
-impl std::fmt::Display for PlyParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for PlyParseError {}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Movement {
     piece_type: PieceType,
@@ -39,17 +28,31 @@ pub enum MoveQualifier {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum Check {
+    Check,
+    Checkmate,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Ply {
     Move {
         movement: Movement,
         qualifier: Option<MoveQualifier>,
+        check: Option<Check>,
     },
-    KingsideCastle(PieceColour),
-    QueensideCastle(PieceColour),
+    KingsideCastle {
+        colour: PieceColour,
+        check: Option<Check>,
+    },
+    QueensideCastle {
+        colour: PieceColour,
+        check: Option<Check>,
+    },
     Promotion {
         movement: Movement,
         promotes_to: PieceType,
         qualifier: Option<MoveQualifier>,
+        check: Option<Check>,
     },
 }
 

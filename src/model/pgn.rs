@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Piece, PieceColour, PlyMetadata};
+use super::{board::Board, PieceColour, PlyMetadata};
 
 pub type Tags = HashMap<String, String>;
 
@@ -25,29 +25,29 @@ impl ToString for GameResult {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Fen {
-    pieces: Vec<Piece>,
+    starting_board: Board,
     active_colour: PieceColour,
-    move_number: i8,
+    move_number: u8,
 }
 
 impl Fen {
-    pub fn new(pieces: Vec<Piece>, active_colour: PieceColour, move_number: i8) -> Self {
+    pub fn new(starting_board: Board, active_colour: PieceColour, move_number: u8) -> Self {
         Fen {
-            pieces,
+            starting_board,
             active_colour,
             move_number,
         }
     }
 
-    pub fn pieces(&self) -> &Vec<Piece> {
-        &self.pieces
+    pub fn starting_board(&self) -> &Board {
+        &self.starting_board
     }
 
     pub fn active_colour(&self) -> &PieceColour {
         &self.active_colour
     }
 
-    pub fn move_number(&self) -> i8 {
+    pub fn move_number(&self) -> u8 {
         self.move_number
     }
 }

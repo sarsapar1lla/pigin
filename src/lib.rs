@@ -2,4 +2,4 @@ mod engine;
 mod model;
 mod parse;
 
-pub use parse::parse_file;
+pub use parse::parse;

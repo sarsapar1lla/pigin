@@ -1,5 +1,7 @@
 [White "Player, One"]
 [Black "Player, Two"]
-[Result "1/2-1/2"]
+[FEN "r7/8/8/8/8/8/8/8 w k - 0 1"]
+[Result "*"]
 
-1. e4 e5 2. Nf3 Nc6 {This is a comment}
+1. e4 e5 *
+
