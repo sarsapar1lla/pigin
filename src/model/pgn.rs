@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{board::Board, PieceColour, PlyMetadata};
+use super::{board::Board, PieceColour, Ply};
 
 pub type Tags = HashMap<String, String>;
 
@@ -57,11 +57,11 @@ pub struct Pgn {
     tags: Tags,
     fen: Fen,
     result: GameResult,
-    ply_list: Vec<PlyMetadata>,
+    ply_list: Vec<Ply>,
 }
 
 impl Pgn {
-    pub fn new(tags: Tags, fen: Fen, result: GameResult, ply_list: Vec<PlyMetadata>) -> Self {
+    pub fn new(tags: Tags, fen: Fen, result: GameResult, ply_list: Vec<Ply>) -> Self {
         Pgn {
             tags,
             fen,
@@ -82,7 +82,7 @@ impl Pgn {
         self.result
     }
 
-    pub fn ply_list(&self) -> &Vec<PlyMetadata> {
+    pub fn ply_list(&self) -> &Vec<Ply> {
         &self.ply_list
     }
 }

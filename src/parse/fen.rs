@@ -6,6 +6,7 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{i8, u8};
 use nom::combinator::all_consuming;
+use nom::multi::many0;
 use nom::{
     character::complete::one_of,
     combinator::{map, map_res},
@@ -78,17 +79,7 @@ fn board_from(
 fn fen_characters(input: &str) -> IResult<&str, Vec<FenCharacter>> {
     let parser = alt((new_row, empty_spaces, piece));
 
-    terminated(
-        fold_many0(
-            parser,
-            Vec::new,
-            |mut acc: Vec<FenCharacter>, item: FenCharacter| {
-                acc.push(item);
-                acc
-            },
-        ),
-        tag(" "),
-    )(input)
+    terminated(many0(parser), tag(" "))(input)
 }
 
 fn new_row(input: &str) -> IResult<&str, FenCharacter> {

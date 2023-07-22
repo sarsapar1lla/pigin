@@ -46,7 +46,7 @@ mod tests {
 
     use crate::model::{
         AvailableCastle, BoardBuilder, Fen, GameResult, Movement, Piece, PieceColour, PieceType,
-        Ply, PlyMetadata, Position, Tags,
+        Ply, PlyMovement, Position, Tags,
     };
 
     use super::*;
@@ -71,9 +71,9 @@ mod tests {
         tags.insert("Black".to_string(), "Player, Two".to_string());
 
         let ply_list = vec![
-            PlyMetadata::new(
+            Ply::new(
                 1,
-                Ply::Move {
+                PlyMovement::Move {
                     movement: Movement::new(
                         PieceType::Pawn,
                         PieceColour::White,
@@ -84,9 +84,9 @@ mod tests {
                 },
                 None,
             ),
-            PlyMetadata::new(
+            Ply::new(
                 1,
-                Ply::Move {
+                PlyMovement::Move {
                     movement: Movement::new(
                         PieceType::Pawn,
                         PieceColour::Black,

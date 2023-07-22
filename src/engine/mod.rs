@@ -1,22 +1,37 @@
-// use crate::model::{Piece, PieceColour, Ply};
+mod castle;
+mod error;
 
-// mod move_generator;
-// mod transformer;
+use crate::model::{Board, MoveQualifier, Movement, PieceType, PlyMovement};
 
-// pub struct Engine {
-//     pieces: Vec<Piece>,
-// }
+use self::error::EngineError;
 
-// impl Engine {
-//     pub fn new() -> Self {
-//         Engine { pieces: Vec::new() }
-//     }
+pub fn execute_moves(board: &Board, ply: &[PlyMovement]) -> Result<Vec<Board>, EngineError> {
+    todo!()
+}
 
-//     pub fn pieces(&self) -> &Vec<Piece> {
-//         &self.pieces
-//     }
+fn execute_move(board: &Board, ply: &PlyMovement) -> Result<Board, EngineError> {
+    match ply {
+        PlyMovement::KingsideCastle { colour, check: _ } => castle::kingside(board, *colour),
+        PlyMovement::QueensideCastle { colour, check: _ } => castle::queenside(board, *colour),
+        PlyMovement::Move {
+            movement,
+            qualifier,
+            check: _,
+        } => piece_move(board, movement, qualifier.as_ref(), None),
+        PlyMovement::Promotion {
+            movement,
+            promotes_to,
+            qualifier,
+            check: _,
+        } => piece_move(board, movement, qualifier.as_ref(), Some(promotes_to)),
+    }
+}
 
-//     pub fn execute(&mut self, _ply: Ply, _to_move: PieceColour) {
-//         todo!()
-//     }
-// }
+fn piece_move(
+    board: &Board,
+    movement: &Movement,
+    qualifier: Option<&MoveQualifier>,
+    promotes_to: Option<&PieceType>,
+) -> Result<Board, EngineError> {
+    todo!()
+}

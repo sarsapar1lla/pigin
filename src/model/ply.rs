@@ -34,7 +34,7 @@ pub enum Check {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Ply {
+pub enum PlyMovement {
     Move {
         movement: Movement,
         qualifier: Option<MoveQualifier>,
@@ -57,15 +57,15 @@ pub enum Ply {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PlyMetadata {
+pub struct Ply {
     move_number: i8,
-    ply: Ply,
+    ply: PlyMovement,
     comment: Option<String>,
 }
 
-impl PlyMetadata {
-    pub fn new(move_number: i8, ply: Ply, comment: Option<String>) -> Self {
-        PlyMetadata {
+impl Ply {
+    pub fn new(move_number: i8, ply: PlyMovement, comment: Option<String>) -> Self {
+        Ply {
             move_number,
             ply,
             comment,

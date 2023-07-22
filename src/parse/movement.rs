@@ -1,9 +1,9 @@
-use crate::model::{PieceColour, PlyMetadata};
+use crate::model::{PieceColour, Ply};
 use nom::branch::alt;
 use nom::bytes::complete::take_until;
 use nom::character::complete::{char, line_ending, space1};
 use nom::combinator::{map, opt};
-use nom::multi::fold_many0;
+use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{
     character::complete::{digit1, space0},
@@ -14,18 +14,13 @@ use nom::{
 
 use super::{ply, result};
 
-pub fn parse(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
-    fold_many0(
-        parse_move,
-        Vec::new,
-        |mut acc: Vec<PlyMetadata>, mut item: Vec<PlyMetadata>| {
-            acc.append(&mut item);
-            acc
-        },
-    )(input)
+pub fn parse(input: &str) -> IResult<&str, Vec<Ply>> {
+    map(many0(parse_move), |list| {
+        list.into_iter().flatten().collect()
+    })(input)
 }
 
-fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
+fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
     let (remaining, move_number) = move_number(input)?;
     let (remaining, white_ply) = ply::parse(remaining, PieceColour::White)?;
     let (remaining, white_comment) = opt(comment)(remaining)?;
@@ -35,7 +30,7 @@ fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
     if maybe_result.is_some() {
         return Ok((
             remaining,
-            vec![PlyMetadata::new(move_number, white_ply, white_comment)],
+            vec![Ply::new(move_number, white_ply, white_comment)],
         ));
     }
 
@@ -47,8 +42,8 @@ fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
     Ok((
         remaining,
         vec![
-            PlyMetadata::new(move_number, white_ply, white_comment),
-            PlyMetadata::new(move_number, black_ply, black_comment),
+            Ply::new(move_number, white_ply, white_comment),
+            Ply::new(move_number, black_ply, black_comment),
         ],
     ))
 }
@@ -78,7 +73,9 @@ mod tests {
     use super::*;
 
     mod parse_move_tests {
-        use crate::model::{Check, MoveQualifier, Movement, PieceColour, PieceType, Ply, Position};
+        use crate::model::{
+            Check, MoveQualifier, Movement, PieceColour, PieceType, PlyMovement, Position,
+        };
 
         use super::*;
 
@@ -92,9 +89,9 @@ mod tests {
         fn parses_move() {
             let result = parse_move("1. e4 e5 2. d4 exd4+").unwrap();
             let expected_ply = vec![
-                PlyMetadata::new(
+                Ply::new(
                     1,
-                    Ply::Move {
+                    PlyMovement::Move {
                         movement: Movement::new(
                             PieceType::Pawn,
                             PieceColour::White,
@@ -105,9 +102,9 @@ mod tests {
                     },
                     None,
                 ),
-                PlyMetadata::new(
+                Ply::new(
                     1,
-                    Ply::Move {
+                    PlyMovement::Move {
                         movement: Movement::new(
                             PieceType::Pawn,
                             PieceColour::Black,
@@ -127,9 +124,9 @@ mod tests {
             let result =
                 parse_move("2. Bcd3 {A comment} O-O+ ; Another comment\n3. f7 Qb2").unwrap();
             let expected_ply = vec![
-                PlyMetadata::new(
+                Ply::new(
                     2,
-                    Ply::Move {
+                    PlyMovement::Move {
                         movement: Movement::new(
                             PieceType::Bishop,
                             PieceColour::White,
@@ -140,9 +137,9 @@ mod tests {
                     },
                     Some("A comment".to_string()),
                 ),
-                PlyMetadata::new(
+                Ply::new(
                     2,
-                    Ply::KingsideCastle {
+                    PlyMovement::KingsideCastle {
                         colour: PieceColour::Black,
                         check: Some(Check::Check),
                     },
@@ -155,9 +152,9 @@ mod tests {
         #[test]
         fn parses_move_with_result_after_white_move() {
             let result = parse_move("2. e4 1-0 something").unwrap();
-            let expected_ply = vec![PlyMetadata::new(
+            let expected_ply = vec![Ply::new(
                 2,
-                Ply::Move {
+                PlyMovement::Move {
                     movement: Movement::new(
                         PieceType::Pawn,
                         PieceColour::White,
@@ -175,9 +172,9 @@ mod tests {
         fn parses_move_with_result_after_black_move() {
             let result = parse_move("2. e4 d5 1-0 something").unwrap();
             let expected_ply = vec![
-                PlyMetadata::new(
+                Ply::new(
                     2,
-                    Ply::Move {
+                    PlyMovement::Move {
                         movement: Movement::new(
                             PieceType::Pawn,
                             PieceColour::White,
@@ -188,9 +185,9 @@ mod tests {
                     },
                     None,
                 ),
-                PlyMetadata::new(
+                Ply::new(
                     2,
-                    Ply::Move {
+                    PlyMovement::Move {
                         movement: Movement::new(
                             PieceType::Pawn,
                             PieceColour::Black,
