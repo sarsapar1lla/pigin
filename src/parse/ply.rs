@@ -1,446 +1,686 @@
-// use regex::Regex;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{line_ending, one_of, space1},
+    combinator::{map, map_res, opt},
+    sequence::{pair, separated_pair, terminated, tuple},
+    IResult,
+};
 
-// use super::error::ParseError;
-// use super::piece::parse_piece_type;
-// use crate::model::PieceColour;
-// use crate::model::PieceType;
-// use crate::model::Position;
-// use crate::model::{MoveQualifier, Movement, Ply};
-// use lazy_static::lazy_static;
+use crate::model::{Check, MoveQualifier, Movement, PieceColour};
+use crate::model::{PieceType, Ply, Position};
 
-// static COLS: &str = "abcdefgh";
-// static ROWS: &str = "12345678";
+use super::error::PgnParseError;
 
-// lazy_static! {
-//     static ref PLY_REGEX: Regex =
-//         Regex::new(r"^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])=?([NBRQK])?(\+|#)?$").unwrap();
-// }
+use super::position::{column, position, row};
 
-// pub fn parse_ply(s: &str, colour_to_move: PieceColour) -> Result<Ply, ParseError> {
-//     // Handle castling cases first
-//     if s == "O-O" {
-//         return Ok(Ply::KingsideCastle(colour_to_move));
-//     }
+pub fn ply(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
+    piece_move(input, colour)
+        .or_else(|_| kingside_castle(input, colour))
+        .or_else(|_| queenside_castle(input, colour))
+}
 
-//     if s == "O-O-O" {
-//         return Ok(Ply::QueensideCastle(colour_to_move));
-//     }
+fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
+    let (remainder, (maybe_piece_type, (maybe_move_qualifier, position), maybe_promotion, check)) =
+        terminated(
+            tuple((
+                opt(piece_type),
+                position_with_qualifier,
+                opt(promotion),
+                opt(check),
+            )),
+            ply_terminator,
+        )(input)?;
 
-//     let regex_match = match_with_regex(s)?;
+    let movement = Movement::new(
+        maybe_piece_type.unwrap_or(PieceType::Pawn),
+        colour,
+        position,
+    );
 
-//     match regex_match {
-//         RegexMatch {
-//             move_to,
-//             piece_type,
-//             move_qualifier,
-//             promoted_piece: None,
-//         } => {
-//             let movement = Movement::new(piece_type, colour_to_move, move_to);
-//             Ok(Ply::Move {
-//                 movement,
-//                 qualifier: move_qualifier,
-//             })
-//         }
-//         RegexMatch {
-//             move_to,
-//             piece_type,
-//             move_qualifier,
-//             promoted_piece: Some(promoted_piece),
-//         } => {
-//             let movement = Movement::new(piece_type, colour_to_move, move_to);
-//             Ok(Ply::Promotion {
-//                 movement,
-//                 promotes_to: promoted_piece,
-//                 qualifier: move_qualifier,
-//             })
-//         }
-//     }
-// }
+    match maybe_promotion {
+        None => Ok((
+            remainder,
+            Ply::Move {
+                movement,
+                qualifier: maybe_move_qualifier,
+                check,
+            },
+        )),
+        Some(promotion) => Ok((
+            remainder,
+            Ply::Promotion {
+                movement,
+                promotes_to: promotion,
+                qualifier: maybe_move_qualifier,
+                check,
+            },
+        )),
+    }
+}
 
-// fn parse_position(s: &str) -> Result<Position, ParseError> {
-//     if s.len() != 2 {
-//         return Err(ParseError(format!("String '{s}' should be length 2")));
-//     }
+fn position_with_qualifier(input: &str) -> IResult<&str, (Option<MoveQualifier>, Position)> {
+    alt((
+        separated_pair(opt(move_qualifier), opt(tag("x")), position),
+        map(position, |p: Position| (None as Option<MoveQualifier>, p)),
+    ))(input)
+}
 
-//     let row = s
-//         .chars()
-//         .nth(1)
-//         .ok_or_else(|| ParseError(format!("Couldn't extract row from string '{s}'")))
-//         .and_then(get_row_from_char)?;
-//     let col = s
-//         .chars()
-//         .next()
-//         .ok_or_else(|| ParseError(format!("Couldn't extract column from string '{s}'")))
-//         .and_then(get_col_from_char)?;
+fn promotion(input: &str) -> IResult<&str, PieceType> {
+    let parser = pair(tag("="), piece_type);
+    map(parser, |matches| matches.1)(input)
+}
 
-//     Position::new(row, col).map_err(|e| ParseError(e.to_string()))
-// }
+fn move_qualifier(input: &str) -> IResult<&str, MoveQualifier> {
+    let parser = pair(opt(column), opt(row));
+    map_res(parser, |values: (Option<i8>, Option<i8>)| {
+        match (values.0, values.1) {
+            (None, None) => Err(PgnParseError::new(format!(
+                "'{input}' is not a valid move qualifier"
+            ))),
+            (Some(col), None) => Ok(MoveQualifier::Col(col)),
+            (None, Some(row)) => Ok(MoveQualifier::Row(row)),
+            (Some(col), Some(row)) => {
+                Ok(MoveQualifier::Position(Position::new(row, col).map_err(
+                    |e| PgnParseError::new(format!("Failed to parse move qualifier position: {e}")),
+                )?))
+            }
+        }
+    })(input)
+}
 
-// fn get_col_from_char(c: char) -> Result<i8, ParseError> {
-//     COLS.find(c)
-//         .ok_or_else(|| ParseError(format!("'{c}' is not a valid column")))
-//         .and_then(|row| {
-//             i8::try_from(row)
-//                 .map_err(|e| ParseError(format!("Failed to parse col '{c}' to i8: {e}")))
-//         })
-// }
+fn kingside_castle(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
+    let castle_parser = pair(alt((tag("O-O"), tag("0-0"))), opt(check));
+    let parser = terminated(castle_parser, ply_terminator);
+    map(parser, |elements| Ply::KingsideCastle {
+        colour,
+        check: elements.1,
+    })(input)
+}
 
-// fn get_row_from_char(c: char) -> Result<i8, ParseError> {
-//     ROWS.find(c)
-//         .ok_or_else(|| ParseError(format!("'{c}' is not a valid row")))
-//         .and_then(|row| {
-//             i8::try_from(row)
-//                 .map_err(|e| ParseError(format!("Failed to parse row '{c}' to i8: {e}")))
-//         })
-// }
+fn queenside_castle(input: &str, colour: PieceColour) -> IResult<&str, Ply> {
+    let castle_parser = pair(alt((tag("O-O-O"), tag("0-0-0"))), opt(check));
+    let parser = terminated(castle_parser, ply_terminator);
+    map(parser, |elements| Ply::QueensideCastle {
+        colour,
+        check: elements.1,
+    })(input)
+}
 
-// // Ply
-// struct RegexMatch {
-//     move_to: Position,
-//     piece_type: PieceType,
-//     move_qualifier: Option<MoveQualifier>,
-//     promoted_piece: Option<PieceType>,
-// }
+fn piece_type(input: &str) -> IResult<&str, PieceType> {
+    map_res(one_of("NBRQK"), |c: char| match c {
+        'N' => Ok(PieceType::Knight),
+        'B' => Ok(PieceType::Bishop),
+        'R' => Ok(PieceType::Rook),
+        'Q' => Ok(PieceType::Queen),
+        'K' => Ok(PieceType::King),
+        _ => Err(format!("Invalid piece type '{c}'")),
+    })(input)
+}
 
-// fn match_with_regex(s: &str) -> Result<RegexMatch, ParseError> {
-//     let captures = PLY_REGEX
-//         .captures(s)
-//         .ok_or_else(|| ParseError(format!("'{s}' could not be parsed")))?;
+fn ply_terminator(input: &str) -> IResult<&str, &str> {
+    alt((space1, line_ending))(input)
+}
 
-//     let move_to = captures
-//         .get(4)
-//         .ok_or_else(|| ParseError(format!("{s} did not contain move position")))
-//         .and_then(|capture| parse_position(capture.as_str()))?;
+fn check(input: &str) -> IResult<&str, Check> {
+    map_res(one_of("+#"), |c: char| match c {
+        '+' => Ok(Check::Check),
+        '#' => Ok(Check::Checkmate),
+        _ => Err(PgnParseError::new(format!("'{c}' is not a valid check"))),
+    })(input)
+}
 
-//     let piece_type = match captures.get(1) {
-//         None => PieceType::Pawn,
-//         Some(piece_type) => {
-//             parse_piece_type(piece_type.as_str()).map_err(|e| ParseError(e.to_string()))?
-//         }
-//     };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     let column_qualifier = match captures.get(2) {
-//         None => None,
-//         Some(col) => Some(
-//             col.as_str()
-//                 .chars()
-//                 .next()
-//                 .ok_or_else(|| ParseError(format!("Column capture {} is empty", col.as_str())))
-//                 .and_then(get_col_from_char)?,
-//         ),
-//     };
+    mod ply_terminator_tests {
+        use super::*;
 
-//     let row_qualifier = match captures.get(3) {
-//         None => None,
-//         Some(row) => Some(
-//             row.as_str()
-//                 .chars()
-//                 .next()
-//                 .ok_or_else(|| ParseError(format!("Row capture {} is empty", row.as_str())))
-//                 .and_then(get_row_from_char)?,
-//         ),
-//     };
+        #[test]
+        fn parses_space() {
+            let result = ply_terminator(" e5").unwrap();
+            assert_eq!(result, ("e5", " "))
+        }
 
-//     let move_qualifier = match (row_qualifier, column_qualifier) {
-//         (None, None) => None,
-//         (Some(row), None) => Some(MoveQualifier::Row(row)),
-//         (None, Some(col)) => Some(MoveQualifier::Col(col)),
-//         (Some(row), Some(col)) => Some(MoveQualifier::Position(
-//             Position::new(row, col).map_err(|e| ParseError(e.to_string()))?,
-//         )),
-//     };
+        #[test]
+        fn parses_newline() {
+            let result = ply_terminator("\ne5").unwrap();
+            assert_eq!(result, ("e5", "\n"))
+        }
+    }
 
-//     let promoted_piece = match captures.get(5) {
-//         None => None,
-//         Some(piece) => Some(parse_piece_type(piece.as_str())?),
-//     };
+    mod kingside_castle_tests {
+        use super::*;
 
-//     Ok(RegexMatch {
-//         move_to,
-//         piece_type,
-//         move_qualifier,
-//         promoted_piece,
-//     })
-// }
+        #[test]
+        fn returns_err_if_not_kingside_castle() {
+            let result = queenside_castle("e4 e5", PieceColour::White);
+            assert!(result.is_err())
+        }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+        #[test]
+        fn parses_kingside_castle() {
+            let result = kingside_castle("O-O f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     // Position
-//     #[test]
-//     fn creates_position_from_string() {
-//         let position = parse_position("a4").unwrap();
+        #[test]
+        fn parses_kingside_castle_at_line_end() {
+            let result = kingside_castle("O-O\nf6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//         assert_eq!(position, Position::new(3, 0).unwrap())
-//     }
+        #[test]
+        fn parses_kingside_castle_with_zeros() {
+            let result = kingside_castle("0-0 f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn fails_if_position_string_is_too_long() {
-//         let position = parse_position("a45");
+        #[test]
+        fn parses_kingside_castle_with_zeros_at_line_end() {
+            let result = kingside_castle("0-0\nf6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//         assert_eq!(
-//             position,
-//             Err(ParseError("String 'a45' should be length 2".to_string()))
-//         )
-//     }
+        #[test]
+        fn parses_kingside_castle_with_check() {
+            let result = kingside_castle("O-O+ f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: Some(Check::Check)
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn fails_if_position_string_is_too_short() {
-//         let position = parse_position("a");
+        #[test]
+        fn parses_kingside_castle_with_checkmate() {
+            let result = kingside_castle("O-O# f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::KingsideCastle {
+                        colour: PieceColour::White,
+                        check: Some(Check::Checkmate)
+                    }
+                )
+            )
+        }
+    }
 
-//         assert_eq!(
-//             position,
-//             Err(ParseError("String 'a' should be length 2".to_string()))
-//         )
-//     }
+    mod queenside_castle_tests {
+        use super::*;
 
-//     #[test]
-//     fn fails_if_not_valid_position() {
-//         let position = parse_position("a9");
+        #[test]
+        fn returns_err_if_not_queenside_castle() {
+            let result = queenside_castle("e4 e5", PieceColour::White);
+            assert!(result.is_err())
+        }
 
-//         assert_eq!(
-//             position,
-//             Err(ParseError("'9' is not a valid row".to_string()))
-//         )
-//     }
+        #[test]
+        fn parses_queenside_castle() {
+            let result = queenside_castle("O-O-O f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     // Ply
-//     #[test]
-//     fn parses_kingside_castle() {
-//         let ply = parse_ply("O-O", PieceColour::Black).unwrap();
-//         assert_eq!(ply, Ply::KingsideCastle(PieceColour::Black))
-//     }
+        #[test]
+        fn parses_queenside_castle_at_line_end() {
+            let result = queenside_castle("O-O-O\nf6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_queenside_castle() {
-//         let ply = parse_ply("O-O-O", PieceColour::White).unwrap();
-//         assert_eq!(ply, Ply::QueensideCastle(PieceColour::White))
-//     }
+        #[test]
+        fn parses_queenside_castle_with_zeros() {
+            let result = queenside_castle("0-0-0 f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_pawn_move() {
-//         let ply = parse_ply("e4", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::White,
-//                     Position::new(3, 4).unwrap()
-//                 ),
-//                 qualifier: None
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_queenside_castle_with_zeros_at_line_end() {
+            let result = queenside_castle("0-0-0\nf6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::QueensideCastle {
+                        colour: PieceColour::White,
+                        check: None
+                    }
+                )
+            )
+        }
+    }
 
-//     #[test]
-//     fn parses_piece_move() {
-//         let ply = parse_ply("Be5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Bishop,
-//                     PieceColour::Black,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: None
-//             }
-//         )
-//     }
+    mod piece_move_tests {
+        use super::*;
 
-//     #[test]
-//     fn parses_piece_move_with_column_qualifier() {
-//         let ply = parse_ply("Rde5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Rook,
-//                     PieceColour::Black,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Col(3))
-//             }
-//         )
-//     }
+        #[test]
+        fn returns_err_if_not_piece_move() {
+            let result = piece_move("junk string", PieceColour::White);
+            assert!(result.is_err())
+        }
 
-//     #[test]
-//     fn parses_piece_move_with_row_qualifier() {
-//         let ply = parse_ply("Q6e5", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Queen,
-//                     PieceColour::White,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Row(5))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_pawn_move() {
+            let result = piece_move("a6 Bd3", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "Bd3",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(5, 0).unwrap()
+                        ),
+                        qualifier: None,
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_piece_move_with_position_qualifier() {
-//         let ply = parse_ply("Nf3e5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Knight,
-//                     PieceColour::Black,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Position(Position::new(2, 5).unwrap()))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_pawn_capture() {
+            let result = piece_move("axb6 Bd3", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "Bd3",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(5, 1).unwrap()
+                        ),
+                        qualifier: Some(MoveQualifier::Col(0)),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_pawn_capture() {
-//         let ply = parse_ply("exd5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::Black,
-//                     Position::new(4, 3).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Col(4))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_pawn_capture_with_position_qualifier() {
+            let result = piece_move("a5xb6 Bd3", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "Bd3",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(5, 1).unwrap()
+                        ),
+                        qualifier: Some(MoveQualifier::Position(Position::new(4, 0).unwrap())),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_piece_capture() {
-//         let ply = parse_ply("Bxd5", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Bishop,
-//                     PieceColour::White,
-//                     Position::new(4, 3).unwrap()
-//                 ),
-//                 qualifier: None
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_pawn_move_with_promotion() {
+            let result = piece_move("a8=R Bd3", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "Bd3",
+                    Ply::Promotion {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(7, 0).unwrap()
+                        ),
+                        promotes_to: PieceType::Rook,
+                        qualifier: None,
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_piece_capture_with_column_qualifier() {
-//         let ply = parse_ply("Rdxe5", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Rook,
-//                     PieceColour::White,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Col(3))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_pawn_capture_with_promotion() {
+            let result = piece_move("axb8=R Bd3", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "Bd3",
+                    Ply::Promotion {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(7, 1).unwrap()
+                        ),
+                        promotes_to: PieceType::Rook,
+                        qualifier: Some(MoveQualifier::Col(0)),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_piece_capture_with_row_qualifier() {
-//         let ply = parse_ply("R2xe5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Rook,
-//                     PieceColour::Black,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Row(1))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_piece_move() {
+            let result = piece_move("Nd7 h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Knight,
+                            PieceColour::White,
+                            Position::new(6, 3).unwrap()
+                        ),
+                        qualifier: None,
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_piece_capture_with_position_qualifier() {
-//         let ply = parse_ply("Qe2xe5", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Queen,
-//                     PieceColour::Black,
-//                     Position::new(4, 4).unwrap()
-//                 ),
-//                 qualifier: Some(MoveQualifier::Position(Position::new(1, 4).unwrap()))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_piece_move_with_column_qualifier() {
+            let result = piece_move("Ncd7 h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Knight,
+                            PieceColour::White,
+                            Position::new(6, 3).unwrap()
+                        ),
+                        qualifier: Some(MoveQualifier::Col(2)),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_pawn_promotion() {
-//         let ply = parse_ply("e8=Q", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Promotion {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::White,
-//                     Position::new(7, 4).unwrap()
-//                 ),
-//                 promotes_to: PieceType::Queen,
-//                 qualifier: None
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_piece_move_with_row_qualifier() {
+            let result = piece_move("N6d7 h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Knight,
+                            PieceColour::White,
+                            Position::new(6, 3).unwrap()
+                        ),
+                        qualifier: Some(MoveQualifier::Row(5)),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_pawn_capture_with_promotion() {
-//         let ply = parse_ply("exd8=N", PieceColour::Black).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Promotion {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::Black,
-//                     Position::new(7, 3).unwrap()
-//                 ),
-//                 promotes_to: PieceType::Knight,
-//                 qualifier: Some(MoveQualifier::Col(4))
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_piece_move_with_position_qualifier() {
+            let result = piece_move("Nb6d7 h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Knight,
+                            PieceColour::White,
+                            Position::new(6, 3).unwrap()
+                        ),
+                        qualifier: Some(MoveQualifier::Position(Position::new(5, 1).unwrap())),
+                        check: None,
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_check() {
-//         let ply = parse_ply("e4+", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::White,
-//                     Position::new(3, 4).unwrap()
-//                 ),
-//                 qualifier: None
-//             }
-//         )
-//     }
+        #[test]
+        fn parses_piece_move_with_capture() {
+            let result = piece_move("Bxc5 f6", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "f6",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Bishop,
+                            PieceColour::White,
+                            Position::new(4, 2).unwrap(),
+                        ),
+                        qualifier: None,
+                        check: None
+                    }
+                )
+            )
+        }
 
-//     #[test]
-//     fn parses_checkmate() {
-//         let ply = parse_ply("e4#", PieceColour::White).unwrap();
-//         assert_eq!(
-//             ply,
-//             Ply::Move {
-//                 movement: Movement::new(
-//                     PieceType::Pawn,
-//                     PieceColour::White,
-//                     Position::new(3, 4).unwrap()
-//                 ),
-//                 qualifier: None
-//             }
-//         )
-//     }
-// }
+        #[test]
+        fn parses_piece_move_with_check() {
+            let result = piece_move("e4+ h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(3, 4).unwrap()
+                        ),
+                        qualifier: None,
+                        check: Some(Check::Check),
+                    }
+                )
+            )
+        }
+
+        #[test]
+        fn parses_piece_move_with_checkmate() {
+            let result = piece_move("e4# h2", PieceColour::White).unwrap();
+            assert_eq!(
+                result,
+                (
+                    "h2",
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(3, 4).unwrap()
+                        ),
+                        qualifier: None,
+                        check: Some(Check::Checkmate),
+                    }
+                )
+            )
+        }
+    }
+
+    mod safe_position_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_move() {
+            let result = position_with_qualifier("junk string");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_position() {
+            let result = position_with_qualifier("e4 e5").unwrap();
+            assert_eq!(result, (" e5", (None, Position::new(3, 4).unwrap())))
+        }
+
+        #[test]
+        fn parses_position_with_column_qualifier() {
+            let result = position_with_qualifier("dxe4 e5").unwrap();
+            assert_eq!(
+                result,
+                (
+                    " e5",
+                    (Some(MoveQualifier::Col(3)), Position::new(3, 4).unwrap())
+                )
+            )
+        }
+
+        #[test]
+        fn parses_position_with_position_qualifier() {
+            let result = position_with_qualifier("d3xe4 e5").unwrap();
+            assert_eq!(
+                result,
+                (
+                    " e5",
+                    (
+                        Some(MoveQualifier::Position(Position::new(2, 3).unwrap())),
+                        Position::new(3, 4).unwrap()
+                    )
+                )
+            )
+        }
+    }
+
+    mod promotion_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_a_promotion() {
+            let result = promotion("e4");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_promotion() {
+            let result = promotion("=Q e5").unwrap();
+            assert_eq!(result, (" e5", PieceType::Queen))
+        }
+    }
+
+    mod move_qualifier_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_a_move_qualifier() {
+            let result = move_qualifier("Nxe4");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_column_qualifier() {
+            let result = move_qualifier("exd5").unwrap();
+            assert_eq!(result, ("xd5", MoveQualifier::Col(4)))
+        }
+
+        #[test]
+        fn parses_row_qualifier() {
+            let result = move_qualifier("4xd5").unwrap();
+            assert_eq!(result, ("xd5", MoveQualifier::Row(3)))
+        }
+
+        #[test]
+        fn parses_position_qualifier() {
+            let result = move_qualifier("e4xd5").unwrap();
+            assert_eq!(
+                result,
+                ("xd5", MoveQualifier::Position(Position::new(3, 4).unwrap()))
+            )
+        }
+    }
+
+    mod check_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_check() {
+            let result = check("something");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_check() {
+            let result = check("+ something").unwrap();
+            assert_eq!(result, (" something", Check::Check))
+        }
+
+        #[test]
+        fn parses_checkmate() {
+            let result = check("# something").unwrap();
+            assert_eq!(result, (" something", Check::Checkmate))
+        }
+    }
+}

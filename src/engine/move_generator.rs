@@ -1,5 +1,5 @@
 // use crate::engine::transformer::Transformer;
-use crate::model::{Piece, PieceColour, PieceType, Position, MAX_POSITION};
+// use crate::model::{Piece, PieceColour, PieceType, Position, MAX_POSITION};
 
 // static WHITE_FORWARD_TRANSFORMER: &[Transformer] = &[(1, 0)];
 // static BLACK_FORWARD_TRANSFORMER: &[Transformer] = &[(-1, 0)];

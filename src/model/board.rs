@@ -19,16 +19,24 @@ pub struct Board {
 
 // TODO: add tests
 impl Board {
-    pub fn occupant(&self, position: &Position) -> Option<&Piece> {
-        self.grid.get(position)
+    pub fn available_castles(&self) -> &[AvailableCastle] {
+        &self.available_castles
     }
 
-    pub fn add(&mut self, piece: Piece, position: &Position) {
-        self.grid.insert(*position, piece);
+    pub fn en_passant_square(&self) -> Option<&Position> {
+        self.en_passant_square.as_ref()
     }
 
-    pub fn remove(&mut self, position: &Position) {
-        self.grid.remove(position);
+    pub fn occupant(&self, position: Position) -> Option<&Piece> {
+        self.grid.get(&position)
+    }
+
+    pub fn add(&mut self, piece: Piece, position: Position) {
+        self.grid.insert(position, piece);
+    }
+
+    pub fn remove(&mut self, position: Position) {
+        self.grid.remove(&position);
     }
 }
 

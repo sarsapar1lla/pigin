@@ -3,17 +3,6 @@ use crate::model::position::Position;
 
 use super::PieceColour;
 
-#[derive(Debug)]
-pub struct PlyParseError(String);
-
-impl std::fmt::Display for PlyParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for PlyParseError {}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Movement {
     piece_type: PieceType,

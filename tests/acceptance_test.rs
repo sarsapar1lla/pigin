@@ -11,9 +11,7 @@ fn parses_candidates_games() {
         let content = fs::read_to_string(path).unwrap();
         let pgn = parse(&content);
 
-        pgn.unwrap();
-
-        // assert!(pgn.is_ok())
+        assert!(pgn.is_ok())
     }
 }
 

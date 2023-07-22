@@ -10,7 +10,8 @@ const COLUMNS: &str = "abcdefgh";
 pub fn position(input: &str) -> IResult<&str, Position> {
     let parser = pair(column, row);
     map_res(parser, |position| {
-        Position::new(position.1, position.0).map_err(|e| PgnParseError::new(e.to_string()))
+        Position::new(position.1, position.0)
+            .map_err(|e| PgnParseError::new(format!("Failed to parse position: {e}")))
     })(input)
 }
 

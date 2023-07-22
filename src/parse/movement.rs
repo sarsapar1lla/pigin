@@ -1,4 +1,4 @@
-use crate::model::PlyMetadata;
+use crate::model::{PieceColour, PlyMetadata};
 use nom::branch::alt;
 use nom::bytes::complete::take_until;
 use nom::character::complete::{char, line_ending, space1};
@@ -16,22 +16,34 @@ use super::ply::ply;
 use super::result::parse_result;
 
 pub fn parse_moves(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
-    terminated(fold_many0(
+    fold_many0(
         parse_move,
         Vec::new,
         |mut acc: Vec<PlyMetadata>, mut item: Vec<PlyMetadata>| {
             acc.append(&mut item);
             acc
         },
-    ), parse_result)(input)
+    )(input)
 }
 
 fn parse_move(input: &str) -> IResult<&str, Vec<PlyMetadata>> {
     let (remaining, move_number) = move_number(input)?;
-    let (remaining, white_ply) = ply(remaining, crate::model::PieceColour::White)?;
+    let (remaining, white_ply) = ply(remaining, PieceColour::White)?;
     let (remaining, white_comment) = opt(comment)(remaining)?;
-    let (remaining, black_ply) = ply(remaining, crate::model::PieceColour::Black)?;
+
+    let (remaining, maybe_result) = opt(parse_result)(remaining)?;
+
+    if maybe_result.is_some() {
+        return Ok((
+            remaining,
+            vec![PlyMetadata::new(move_number, white_ply, white_comment)],
+        ));
+    }
+
+    let (remaining, black_ply) = ply(remaining, PieceColour::Black)?;
     let (remaining, black_comment) = opt(comment)(remaining)?;
+
+    let (remaining, _) = opt(parse_result)(remaining)?;
 
     Ok((
         remaining,
@@ -139,6 +151,59 @@ mod tests {
                 ),
             ];
             assert_eq!(result, ("3. f7 Qb2", expected_ply))
+        }
+
+        #[test]
+        fn parses_move_with_result_after_white_move() {
+            let result = parse_move("2. e4 1-0 something").unwrap();
+            let expected_ply = vec![PlyMetadata::new(
+                2,
+                Ply::Move {
+                    movement: Movement::new(
+                        PieceType::Pawn,
+                        PieceColour::White,
+                        Position::new(3, 4).unwrap(),
+                    ),
+                    qualifier: None,
+                    check: None,
+                },
+                None,
+            )];
+            assert_eq!(result, (" something", expected_ply))
+        }
+
+        #[test]
+        fn parses_move_with_result_after_black_move() {
+            let result = parse_move("2. e4 d5 1-0 something").unwrap();
+            let expected_ply = vec![
+                PlyMetadata::new(
+                    2,
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::White,
+                            Position::new(3, 4).unwrap(),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                PlyMetadata::new(
+                    2,
+                    Ply::Move {
+                        movement: Movement::new(
+                            PieceType::Pawn,
+                            PieceColour::Black,
+                            Position::new(4, 3).unwrap(),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+            ];
+            assert_eq!(result, (" something", expected_ply))
         }
     }
 

@@ -25,15 +25,14 @@ enum FenCharacter {
     Piece(Piece),
 }
 
-// TODO: add tests
 pub fn parse_fen(input: &str) -> IResult<&str, Fen> {
     let parser = all_consuming(tuple((
         fen_characters,
         active_colour,
         available_castles,
         en_passant_square,
-        clock,
-        clock,
+        halfmove_clock,
+        fullmove_number,
     )));
     map_res(parser, |elements| {
         let starting_board = board_from(elements.0, elements.2, elements.3)?;
@@ -41,7 +40,6 @@ pub fn parse_fen(input: &str) -> IResult<&str, Fen> {
     })(input)
 }
 
-// TODO: add tests
 fn board_from(
     fen_characters: Vec<FenCharacter>,
     available_castles: Vec<AvailableCastle>,
@@ -62,7 +60,7 @@ fn board_from(
         match character {
             FenCharacter::NewRow => {
                 row -= 1;
-                col = MIN_POSITION
+                col = MIN_POSITION;
             }
             FenCharacter::Empty(spaces) => col += spaces,
             FenCharacter::Piece(piece) => {
@@ -99,7 +97,7 @@ fn new_row(input: &str) -> IResult<&str, FenCharacter> {
 
 fn empty_spaces(input: &str) -> IResult<&str, FenCharacter> {
     map_res(i8, |i| match i {
-        i if (i >= 1) & (i <= 8) => Ok(FenCharacter::Empty(i)),
+        i if (1..=8).contains(&i) => Ok(FenCharacter::Empty(i)),
         _ => Err(PgnParseError::new(format!(
             "'{i}' is not a valid empty space"
         ))),
@@ -166,18 +164,128 @@ fn available_castle(input: &str) -> IResult<&str, AvailableCastle> {
 
 fn en_passant_square(input: &str) -> IResult<&str, Option<Position>> {
     let none_parser = map(tag("-"), |_| None);
-    let some_parser = map(position, |p| Some(p));
+    let some_parser = map(position, Option::Some);
 
     terminated(alt((none_parser, some_parser)), tag(" "))(input)
 }
 
-fn clock(input: &str) -> IResult<&str, u8> {
+fn halfmove_clock(input: &str) -> IResult<&str, u8> {
+    terminated(u8, tag(" "))(input)
+}
+
+fn fullmove_number(input: &str) -> IResult<&str, u8> {
     u8(input)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod parse_fen_tests {
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_fen() {
+            let result = parse_fen("something");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn returns_err_if_whole_input_not_consumed() {
+            let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5 something";
+            let result = parse_fen(fen_string);
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_fen() {
+            let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5";
+            let result = parse_fen(fen_string).unwrap();
+
+            let mut board_builder = BoardBuilder::new();
+            board_builder.available_castles(vec![
+                AvailableCastle::WhiteQueenside,
+                AvailableCastle::BlackKingside,
+            ]);
+            board_builder.en_passant_square(Position::new(3, 3).unwrap());
+            board_builder.piece(
+                Piece::new(PieceColour::Black, PieceType::Rook),
+                Position::new(7, 0).unwrap(),
+            );
+            board_builder.piece(
+                Piece::new(PieceColour::White, PieceType::King),
+                Position::new(0, 6).unwrap(),
+            );
+
+            let starting_board = board_builder.build();
+
+            assert_eq!(
+                result,
+                ("", Fen::new(starting_board, PieceColour::Black, 5))
+            )
+        }
+    }
+
+    mod board_from_tests {
+        use super::*;
+
+        #[test]
+        fn adds_available_castles() {
+            let result =
+                board_from(Vec::new(), vec![AvailableCastle::BlackQueenside], None).unwrap();
+            assert_eq!(
+                result.available_castles(),
+                &[AvailableCastle::BlackQueenside]
+            )
+        }
+
+        #[test]
+        fn adds_en_passant_square_if_present() {
+            let result =
+                board_from(Vec::new(), Vec::new(), Some(Position::new(0, 0).unwrap())).unwrap();
+            assert_eq!(
+                result.en_passant_square(),
+                Some(&Position::new(0, 0,).unwrap())
+            )
+        }
+
+        #[test]
+        fn populates_board_from_fen_string() {
+            let fen_characters = vec![
+                FenCharacter::Empty(6),
+                FenCharacter::Piece(Piece::new(PieceColour::Black, PieceType::Bishop)),
+                FenCharacter::NewRow,
+                FenCharacter::Empty(2),
+                FenCharacter::Piece(Piece::new(PieceColour::White, PieceType::Knight)),
+            ];
+
+            let mut board_builder = BoardBuilder::new();
+            board_builder.piece(
+                Piece::new(PieceColour::Black, PieceType::Bishop),
+                Position::new(7, 6).unwrap(),
+            );
+            board_builder.piece(
+                Piece::new(PieceColour::White, PieceType::Knight),
+                Position::new(6, 2).unwrap(),
+            );
+            let expected = board_builder.build();
+
+            let result = board_from(fen_characters, Vec::new(), None).unwrap();
+
+            assert_eq!(result, expected)
+        }
+
+        #[test]
+        fn returns_err_if_invalid_fen_characters() {
+            let fen_characters = vec![
+                FenCharacter::Empty(9),
+                FenCharacter::Piece(Piece::new(PieceColour::Black, PieceType::Queen)),
+            ];
+            let result = board_from(fen_characters, Vec::new(), None);
+
+            assert!(result.is_err())
+        }
+    }
 
     mod fen_characters_tests {
         use super::*;
