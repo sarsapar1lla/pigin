@@ -1,22 +1,25 @@
 use crate::model::piece::PieceType;
 use crate::model::position::Position;
 
-use super::PieceColour;
+use super::{Piece, PieceColour};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Movement {
-    piece_type: PieceType,
-    piece_colour: PieceColour,
+    piece: Piece,
     position: Position,
 }
 
 impl Movement {
-    pub fn new(piece_type: PieceType, piece_colour: PieceColour, position: Position) -> Self {
-        Movement {
-            piece_type,
-            piece_colour,
-            position,
-        }
+    pub fn new(piece: Piece, position: Position) -> Self {
+        Movement { piece, position }
+    }
+
+    pub fn piece(&self) -> Piece {
+        self.piece
+    }
+
+    pub fn position(&self) -> Position {
+        self.position
     }
 }
 
@@ -59,7 +62,7 @@ pub enum PlyMovement {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ply {
     move_number: i8,
-    ply: PlyMovement,
+    movement: PlyMovement,
     comment: Option<String>,
 }
 
@@ -67,8 +70,20 @@ impl Ply {
     pub fn new(move_number: i8, ply: PlyMovement, comment: Option<String>) -> Self {
         Ply {
             move_number,
-            ply,
+            movement: ply,
             comment,
         }
+    }
+
+    pub fn move_number(&self) -> i8 {
+        self.move_number
+    }
+
+    pub fn movement(&self) -> &PlyMovement {
+        &self.movement
+    }
+
+    pub fn comment(&self) -> Option<&String> {
+        self.comment.as_ref()
     }
 }

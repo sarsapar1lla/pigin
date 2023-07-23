@@ -57,7 +57,7 @@ pub struct Pgn {
     tags: Tags,
     fen: Fen,
     result: GameResult,
-    ply_list: Vec<Ply>,
+    ply: Vec<Ply>,
 }
 
 impl Pgn {
@@ -66,7 +66,7 @@ impl Pgn {
             tags,
             fen,
             result,
-            ply_list,
+            ply: ply_list,
         }
     }
 
@@ -82,7 +82,7 @@ impl Pgn {
         self.result
     }
 
-    pub fn ply_list(&self) -> &Vec<Ply> {
-        &self.ply_list
+    pub fn ply(&self) -> &[Ply] {
+        &self.ply
     }
 }

@@ -74,7 +74,7 @@ mod tests {
 
     mod parse_move_tests {
         use crate::model::{
-            Check, MoveQualifier, Movement, PieceColour, PieceType, PlyMovement, Position,
+            Check, MoveQualifier, Movement, Piece, PieceColour, PieceType, PlyMovement, Position,
         };
 
         use super::*;
@@ -93,8 +93,7 @@ mod tests {
                     1,
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(3, 4).unwrap(),
                         ),
                         qualifier: None,
@@ -106,8 +105,7 @@ mod tests {
                     1,
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::Black,
+                            Piece::new(PieceColour::Black, PieceType::Pawn),
                             Position::new(4, 4).unwrap(),
                         ),
                         qualifier: None,
@@ -128,8 +126,7 @@ mod tests {
                     2,
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Bishop,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Bishop),
                             Position::new(2, 3).unwrap(),
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
@@ -156,8 +153,7 @@ mod tests {
                 2,
                 PlyMovement::Move {
                     movement: Movement::new(
-                        PieceType::Pawn,
-                        PieceColour::White,
+                        Piece::new(PieceColour::White, PieceType::Pawn),
                         Position::new(3, 4).unwrap(),
                     ),
                     qualifier: None,
@@ -176,8 +172,7 @@ mod tests {
                     2,
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(3, 4).unwrap(),
                         ),
                         qualifier: None,
@@ -189,8 +184,7 @@ mod tests {
                     2,
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::Black,
+                            Piece::new(PieceColour::Black, PieceType::Pawn),
                             Position::new(4, 3).unwrap(),
                         ),
                         qualifier: None,

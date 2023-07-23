@@ -7,7 +7,7 @@ use nom::{
     IResult,
 };
 
-use crate::model::{Check, MoveQualifier, Movement, PieceColour};
+use crate::model::{Check, MoveQualifier, Movement, Piece, PieceColour};
 use crate::model::{PieceType, PlyMovement, Position};
 
 use super::{error::PgnParseError, position};
@@ -32,11 +32,9 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
             ply_terminator,
         )(input)?;
 
-    let movement = Movement::new(
-        maybe_piece_type.unwrap_or(PieceType::Pawn),
-        colour,
-        position,
-    );
+    let piece = Piece::new(colour, maybe_piece_type.unwrap_or(PieceType::Pawn));
+
+    let movement = Movement::new(piece, position);
 
     match maybe_promotion {
         None => Ok((
@@ -340,8 +338,7 @@ mod tests {
                     "Bd3",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(5, 0).unwrap()
                         ),
                         qualifier: None,
@@ -360,8 +357,7 @@ mod tests {
                     "Bd3",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(5, 1).unwrap()
                         ),
                         qualifier: Some(MoveQualifier::Col(0)),
@@ -380,8 +376,7 @@ mod tests {
                     "Bd3",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(5, 1).unwrap()
                         ),
                         qualifier: Some(MoveQualifier::Position(Position::new(4, 0).unwrap())),
@@ -400,8 +395,7 @@ mod tests {
                     "Bd3",
                     PlyMovement::Promotion {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(7, 0).unwrap()
                         ),
                         promotes_to: PieceType::Rook,
@@ -421,8 +415,7 @@ mod tests {
                     "Bd3",
                     PlyMovement::Promotion {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(7, 1).unwrap()
                         ),
                         promotes_to: PieceType::Rook,
@@ -442,8 +435,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Knight,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Knight),
                             Position::new(6, 3).unwrap()
                         ),
                         qualifier: None,
@@ -462,8 +454,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Knight,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Knight),
                             Position::new(6, 3).unwrap()
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
@@ -482,8 +473,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Knight,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Knight),
                             Position::new(6, 3).unwrap()
                         ),
                         qualifier: Some(MoveQualifier::Row(5)),
@@ -502,8 +492,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Knight,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Knight),
                             Position::new(6, 3).unwrap()
                         ),
                         qualifier: Some(MoveQualifier::Position(Position::new(5, 1).unwrap())),
@@ -522,8 +511,7 @@ mod tests {
                     "f6",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Bishop,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Bishop),
                             Position::new(4, 2).unwrap(),
                         ),
                         qualifier: None,
@@ -542,8 +530,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(3, 4).unwrap()
                         ),
                         qualifier: None,
@@ -562,8 +549,7 @@ mod tests {
                     "h2",
                     PlyMovement::Move {
                         movement: Movement::new(
-                            PieceType::Pawn,
-                            PieceColour::White,
+                            Piece::new(PieceColour::White, PieceType::Pawn),
                             Position::new(3, 4).unwrap()
                         ),
                         qualifier: None,

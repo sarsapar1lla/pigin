@@ -31,6 +31,13 @@ impl Board {
         self.grid.get(&position)
     }
 
+    pub fn search(&self, piece: Piece) -> Vec<Position> {
+        self.grid
+            .iter()
+            .filter_map(|(&key, &val)| if val == piece { Some(key) } else { None })
+            .collect()
+    }
+
     pub fn add(&mut self, piece: Piece, position: Position) {
         self.grid.insert(position, piece);
     }
@@ -40,7 +47,10 @@ impl Board {
     }
 
     pub fn remove_available_castle(&mut self, available_castle: AvailableCastle) {
-        let index = self.available_castles.iter().position(|x| x == &available_castle);
+        let index = self
+            .available_castles
+            .iter()
+            .position(|x| x == &available_castle);
         if let Some(index) = index {
             self.available_castles.remove(index);
         }
