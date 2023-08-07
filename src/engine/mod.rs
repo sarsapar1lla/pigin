@@ -1,11 +1,19 @@
 mod castle;
 mod error;
+mod moves;
 
 use crate::model::{
-    Board, MoveQualifier, Movement, PieceColour, PieceType, Ply, PlyMovement, Position,
+    AvailableCastle, Board, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply,
+    PlyMovement, Position,
 };
 
-use self::error::EngineError;
+use self::{
+    castle::{
+        BLACK_KINGS_ROOK_POSITION, BLACK_QUEENS_ROOK_POSITION, WHITE_KINGS_ROOK_POSITION,
+        WHITE_QUEENS_ROOK_POSITION,
+    },
+    error::EngineError,
+};
 
 pub fn execute_moves(board: &Board, ply: &[Ply]) -> Result<Vec<Board>, EngineError> {
     let mut boards: Vec<Board> = vec![board.clone()];
@@ -56,9 +64,16 @@ fn piece_move(
         )));
     }
 
-    let candidate_position = match &candidates[..] {
+    let viable_candidates: Vec<Position> = candidates
+        .into_iter()
+        .filter(|&candidate_position| {
+            moves::find(piece, candidate_position, board).contains(&position)
+        })
+        .collect();
+
+    let candidate = match &viable_candidates[..] {
         [] => Err(EngineError::new(format!(
-            "No candidates found for piece {piece:?}"
+            "No piece {piece:?} can move to position {position:?}"
         ))),
         [candidate] => Ok(candidate.clone()),
         candidates => {
@@ -66,16 +81,23 @@ fn piece_move(
                 qualified_position(candidates, qualifier)
             } else {
                 Err(EngineError::new(format!(
-                    "Cannot determine piece position from {}: no qualifier provided",
+                    "Cannot determine candidate {piece:?} moving to {position:?} given {} candidates: no qualifier provided",
                     candidates.len()
                 )))
             }
         }
     }?;
 
-    
+    let mut next_board = board.clone();
+    next_board.remove(candidate);
+    match promotes_to {
+        None => next_board.add(piece, position),
+        Some(&other) => next_board.add(Piece::new(*piece.colour(), other), position),
+    };
 
-    todo!()
+    update_available_castles(piece, candidate, &mut next_board);
+
+    Ok(next_board)
 }
 
 fn qualified_position(
@@ -117,4 +139,37 @@ fn qualified_position(
             }
         }
     }
+}
+
+fn update_available_castles(piece: Piece, position: Position, board: &mut Board) -> &mut Board {
+    match (piece.piece_type(), piece.colour()) {
+        (PieceType::King, PieceColour::White) => {
+            board.remove_available_castle(AvailableCastle::WhiteKingside);
+            board.remove_available_castle(AvailableCastle::WhiteQueenside);
+        }
+        (PieceType::King, PieceColour::Black) => {
+            board.remove_available_castle(AvailableCastle::BlackKingside);
+            board.remove_available_castle(AvailableCastle::BlackQueenside);
+        }
+        (PieceType::Rook, PieceColour::White) => {
+            if position == *WHITE_KINGS_ROOK_POSITION {
+                board.remove_available_castle(AvailableCastle::WhiteKingside);
+            } else if position == *WHITE_QUEENS_ROOK_POSITION {
+                board.remove_available_castle(AvailableCastle::WhiteQueenside);
+            } else {
+                ();
+            }
+        }
+        (PieceType::Rook, PieceColour::Black) => {
+            if position == *BLACK_KINGS_ROOK_POSITION {
+                board.remove_available_castle(AvailableCastle::BlackKingside);
+            } else if position == *BLACK_QUEENS_ROOK_POSITION {
+                board.remove_available_castle(AvailableCastle::BlackQueenside);
+            } else {
+                ();
+            }
+        }
+        _ => {}
+    };
+    board
 }

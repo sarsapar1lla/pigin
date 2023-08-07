@@ -11,11 +11,11 @@ lazy_static! {
         Position::new(MIN_POSITION, MAX_POSITION - 1).unwrap();
     static ref WHITE_QUEENSIDE_CASTLE_KING_POSITION: Position =
         Position::new(MIN_POSITION, MIN_POSITION + 2).unwrap();
-    static ref WHITE_KINGS_ROOK_POSITION: Position =
+    pub static ref WHITE_KINGS_ROOK_POSITION: Position =
         Position::new(MIN_POSITION, MAX_POSITION).unwrap();
     static ref WHITE_KINGSIDE_CASTLE_ROOK_POSITION: Position =
         Position::new(MIN_POSITION, MAX_POSITION - 2).unwrap();
-    static ref WHITE_QUEENS_ROOK_POSITION: Position =
+    pub static ref WHITE_QUEENS_ROOK_POSITION: Position =
         Position::new(MIN_POSITION, MIN_POSITION).unwrap();
     static ref WHITE_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
         Position::new(MIN_POSITION, MIN_POSITION + 3).unwrap();
@@ -24,11 +24,11 @@ lazy_static! {
         Position::new(MAX_POSITION, MAX_POSITION - 1).unwrap();
     static ref BLACK_QUEENSIDE_CASTLE_KING_POSITION: Position =
         Position::new(MAX_POSITION, MIN_POSITION + 2).unwrap();
-    static ref BLACK_KINGS_ROOK_POSITION: Position =
+    pub static ref BLACK_KINGS_ROOK_POSITION: Position =
         Position::new(MAX_POSITION, MAX_POSITION).unwrap();
     static ref BLACK_KINGSIDE_CASTLE_ROOK_POSITION: Position =
         Position::new(MAX_POSITION, MAX_POSITION - 2).unwrap();
-    static ref BLACK_QUEENS_ROOK_POSITION: Position =
+    pub static ref BLACK_QUEENS_ROOK_POSITION: Position =
         Position::new(MAX_POSITION, MIN_POSITION).unwrap();
     static ref BLACK_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
         Position::new(MAX_POSITION, MIN_POSITION + 3).unwrap();

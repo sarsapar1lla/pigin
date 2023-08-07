@@ -13,6 +13,7 @@ fn parses_candidates_games() {
         let pgn = parse(&content).unwrap();
 
         let boards = execute_moves(pgn.fen().starting_board(), pgn.ply());
+        println!("{boards:?}");
         assert!(boards.is_ok())
     }
 }

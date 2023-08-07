@@ -69,6 +69,7 @@ fn board_from(
                     PgnParseError::new(format!("Failed to create position for fen character: {e}"))
                 })?;
                 builder.piece(piece, position);
+                col += 1;
             }
         }
     }
