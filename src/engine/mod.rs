@@ -1,5 +1,6 @@
 mod castle;
 mod error;
+mod legality;
 mod moves;
 
 use crate::model::{
@@ -57,6 +58,14 @@ fn piece_move(
     let position = movement.position();
 
     let candidates = board.search(piece);
+    let king_position = {
+        let positions = board.search(Piece::new(piece.colour().to_owned(), PieceType::King));
+        positions.first().unwrap().to_owned()
+    };
+    let opposition_colour = match *piece.colour() {
+        PieceColour::White => PieceColour::Black,
+        PieceColour::Black => PieceColour::White,
+    };
 
     if candidates.is_empty() {
         return Err(EngineError::new(format!(
@@ -64,10 +73,20 @@ fn piece_move(
         )));
     }
 
+    // println!("{movement:?}, {qualifier:?}, {candidates:?}");
+
     let viable_candidates: Vec<Position> = candidates
         .into_iter()
         .filter(|&candidate_position| {
             moves::find(piece, candidate_position, board).contains(&position)
+                && legality::check(
+                    piece,
+                    candidate_position,
+                    position,
+                    king_position,
+                    opposition_colour,
+                    board.clone(),
+                )
         })
         .collect();
 
@@ -75,7 +94,7 @@ fn piece_move(
         [] => Err(EngineError::new(format!(
             "No piece {piece:?} can move to position {position:?}"
         ))),
-        [candidate] => Ok(candidate.clone()),
+        [candidate] => Ok(*candidate),
         candidates => {
             if let Some(qualifier) = qualifier {
                 qualified_position(candidates, qualifier)
@@ -156,8 +175,6 @@ fn update_available_castles(piece: Piece, position: Position, board: &mut Board)
                 board.remove_available_castle(AvailableCastle::WhiteKingside);
             } else if position == *WHITE_QUEENS_ROOK_POSITION {
                 board.remove_available_castle(AvailableCastle::WhiteQueenside);
-            } else {
-                ();
             }
         }
         (PieceType::Rook, PieceColour::Black) => {
@@ -165,8 +182,6 @@ fn update_available_castles(piece: Piece, position: Position, board: &mut Board)
                 board.remove_available_castle(AvailableCastle::BlackKingside);
             } else if position == *BLACK_QUEENS_ROOK_POSITION {
                 board.remove_available_castle(AvailableCastle::BlackQueenside);
-            } else {
-                ();
             }
         }
         _ => {}

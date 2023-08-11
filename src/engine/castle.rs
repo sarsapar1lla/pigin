@@ -6,32 +6,32 @@ use super::error::EngineError;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref WHITE_KING_POSITION: Position = Position::new(MIN_POSITION, 4).unwrap();
+    static ref WHITE_KING_POSITION: Position = Position::try_from(MIN_POSITION, 4).unwrap();
     static ref WHITE_KINGSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MIN_POSITION, MAX_POSITION - 1).unwrap();
+        Position::try_from(MIN_POSITION, MAX_POSITION - 1).unwrap();
     static ref WHITE_QUEENSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MIN_POSITION, MIN_POSITION + 2).unwrap();
+        Position::try_from(MIN_POSITION, MIN_POSITION + 2).unwrap();
     pub static ref WHITE_KINGS_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MAX_POSITION).unwrap();
+        Position::try_from(MIN_POSITION, MAX_POSITION).unwrap();
     static ref WHITE_KINGSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MAX_POSITION - 2).unwrap();
+        Position::try_from(MIN_POSITION, MAX_POSITION - 2).unwrap();
     pub static ref WHITE_QUEENS_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MIN_POSITION).unwrap();
+        Position::try_from(MIN_POSITION, MIN_POSITION).unwrap();
     static ref WHITE_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MIN_POSITION + 3).unwrap();
-    static ref BLACK_KING_POSITION: Position = Position::new(MAX_POSITION, 4).unwrap();
+        Position::try_from(MIN_POSITION, MIN_POSITION + 3).unwrap();
+    static ref BLACK_KING_POSITION: Position = Position::try_from(MAX_POSITION, 4).unwrap();
     static ref BLACK_KINGSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MAX_POSITION, MAX_POSITION - 1).unwrap();
+        Position::try_from(MAX_POSITION, MAX_POSITION - 1).unwrap();
     static ref BLACK_QUEENSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MAX_POSITION, MIN_POSITION + 2).unwrap();
+        Position::try_from(MAX_POSITION, MIN_POSITION + 2).unwrap();
     pub static ref BLACK_KINGS_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MAX_POSITION).unwrap();
+        Position::try_from(MAX_POSITION, MAX_POSITION).unwrap();
     static ref BLACK_KINGSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MAX_POSITION - 2).unwrap();
+        Position::try_from(MAX_POSITION, MAX_POSITION - 2).unwrap();
     pub static ref BLACK_QUEENS_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MIN_POSITION).unwrap();
+        Position::try_from(MAX_POSITION, MIN_POSITION).unwrap();
     static ref BLACK_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MIN_POSITION + 3).unwrap();
+        Position::try_from(MAX_POSITION, MIN_POSITION + 3).unwrap();
 }
 
 pub fn kingside(board: &Board, colour: PieceColour) -> Result<Board, EngineError> {

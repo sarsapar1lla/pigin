@@ -65,7 +65,7 @@ fn board_from(
             }
             FenCharacter::Empty(spaces) => col += spaces,
             FenCharacter::Piece(piece) => {
-                let position = Position::new(row, col).map_err(|e| {
+                let position = Position::try_from(row, col).map_err(|e| {
                     PgnParseError::new(format!("Failed to create position for fen character: {e}"))
                 })?;
                 builder.piece(piece, position);
@@ -199,14 +199,14 @@ mod tests {
                 AvailableCastle::WhiteQueenside,
                 AvailableCastle::BlackKingside,
             ]);
-            board_builder.en_passant_square(Position::new(3, 3).unwrap());
+            board_builder.en_passant_square(Position::try_from(3, 3).unwrap());
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(7, 0).unwrap(),
+                Position::try_from(7, 0).unwrap(),
             );
             board_builder.piece(
                 Piece::new(PieceColour::White, PieceType::King),
-                Position::new(0, 6).unwrap(),
+                Position::try_from(0, 6).unwrap(),
             );
 
             let starting_board = board_builder.build();
@@ -233,11 +233,15 @@ mod tests {
 
         #[test]
         fn adds_en_passant_square_if_present() {
-            let result =
-                board_from(Vec::new(), Vec::new(), Some(Position::new(0, 0).unwrap())).unwrap();
+            let result = board_from(
+                Vec::new(),
+                Vec::new(),
+                Some(Position::try_from(0, 0).unwrap()),
+            )
+            .unwrap();
             assert_eq!(
                 result.en_passant_square(),
-                Some(&Position::new(0, 0,).unwrap())
+                Some(&Position::try_from(0, 0,).unwrap())
             )
         }
 
@@ -254,11 +258,11 @@ mod tests {
             let mut board_builder = BoardBuilder::new();
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Bishop),
-                Position::new(7, 6).unwrap(),
+                Position::try_from(7, 6).unwrap(),
             );
             board_builder.piece(
                 Piece::new(PieceColour::White, PieceType::Knight),
-                Position::new(6, 2).unwrap(),
+                Position::try_from(6, 2).unwrap(),
             );
             let expected = board_builder.build();
 
@@ -423,7 +427,10 @@ mod tests {
         #[test]
         fn parses_some_en_passent_square() {
             let result = en_passant_square("e4 something").unwrap();
-            assert_eq!(result, ("something", Some(Position::new(3, 4).unwrap())))
+            assert_eq!(
+                result,
+                ("something", Some(Position::try_from(3, 4).unwrap()))
+            )
         }
     }
 }

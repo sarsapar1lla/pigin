@@ -76,7 +76,7 @@ mod tests {
                 PlyMovement::Move {
                     movement: Movement::new(
                         Piece::new(PieceColour::White, PieceType::Pawn),
-                        Position::new(3, 4).unwrap(),
+                        Position::try_from(3, 4).unwrap(),
                     ),
                     qualifier: None,
                     check: None,
@@ -88,7 +88,7 @@ mod tests {
                 PlyMovement::Move {
                     movement: Movement::new(
                         Piece::new(PieceColour::Black, PieceType::Pawn),
-                        Position::new(4, 4).unwrap(),
+                        Position::try_from(4, 4).unwrap(),
                     ),
                     qualifier: None,
                     check: None,
@@ -106,7 +106,7 @@ mod tests {
             .available_castles(vec![AvailableCastle::BlackKingside])
             .piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(7, 0).unwrap(),
+                Position::try_from(7, 0).unwrap(),
             );
 
         let board = board_builder.build();

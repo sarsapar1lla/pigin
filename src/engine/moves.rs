@@ -54,9 +54,10 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
         BLACK_PAWN_METRIC
     };
 
-    match apply_metric_once(position, colour, move_metric, board) {
-        MoveOutcome::Empty(new_position) => positions.push(new_position),
-        _ => {}
+    if let MoveOutcome::Empty(new_position) =
+        apply_metric_once(position, colour, move_metric, board)
+    {
+        positions.push(new_position);
     }
 
     let on_home_row = (colour == PieceColour::White && position.row() == MIN_POSITION + 1)
@@ -68,9 +69,10 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
         } else {
             BLACK_DOUBLE_PAWN_METRIC
         };
-        match apply_metric_once(position, colour, double_move_metric, board) {
-            MoveOutcome::Empty(new_position) => positions.push(new_position),
-            _ => {}
+        if let MoveOutcome::Empty(new_position) =
+            apply_metric_once(position, colour, double_move_metric, board)
+        {
+            positions.push(new_position);
         }
     }
 
@@ -80,7 +82,7 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
         BLACK_PAWN_CAPTURES
     };
     let mut capture_moves: Vec<Position> = capture_metrics
-        .into_iter()
+        .iter()
         .filter_map(
             |&metric| match apply_metric_once(position, colour, metric, board) {
                 MoveOutcome::OccupiedOppositeColour(new_position) => Some(new_position),
@@ -103,7 +105,7 @@ fn apply_metrics(
     board: &Board,
 ) -> Vec<Position> {
     metrics
-        .into_iter()
+        .iter()
         .flat_map(|&metric| apply_metric(position, colour, metric, board))
         .collect()
 }
@@ -137,7 +139,7 @@ fn apply_metrics_once(
     board: &Board,
 ) -> Vec<Position> {
     metrics
-        .into_iter()
+        .iter()
         .filter_map(
             |&metric| match apply_metric_once(position, colour, metric, board) {
                 MoveOutcome::Empty(position) => Some(position),
@@ -157,7 +159,7 @@ fn apply_metric_once(
 ) -> MoveOutcome {
     let row = position.row() + metric.0;
     let col = position.col() + metric.1;
-    let new_position = Position::new(row, col);
+    let new_position = Position::try_from(row, col);
 
     new_position
         .map(|p| match board.occupant(p) {
@@ -179,34 +181,53 @@ mod tests {
 
         #[test]
         fn blocks_forward_move_if_occupied() {
-            let positions = pawn_moves(Position::new(1, 3).unwrap(), PieceColour::White, &board());
+            let positions = pawn_moves(
+                Position::try_from(1, 3).unwrap(),
+                PieceColour::White,
+                &board(),
+            );
             assert!(positions.is_empty())
         }
 
         #[test]
         fn finds_pawn_move() {
-            let positions = pawn_moves(Position::new(2, 5).unwrap(), PieceColour::White, &board());
-            assert_eq!(positions, vec![Position::new(3, 5).unwrap()])
+            let positions = pawn_moves(
+                Position::try_from(2, 5).unwrap(),
+                PieceColour::White,
+                &board(),
+            );
+            assert_eq!(positions, vec![Position::try_from(3, 5).unwrap()])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
-            let positions = pawn_moves(Position::new(1, 5).unwrap(), PieceColour::White, &board());
+            let positions = pawn_moves(
+                Position::try_from(1, 5).unwrap(),
+                PieceColour::White,
+                &board(),
+            );
             assert_eq!(
                 positions,
-                vec![Position::new(2, 5).unwrap(), Position::new(3, 5).unwrap()]
+                vec![
+                    Position::try_from(2, 5).unwrap(),
+                    Position::try_from(3, 5).unwrap()
+                ]
             )
         }
 
         #[test]
         fn finds_capture_if_available() {
-            let positions = pawn_moves(Position::new(1, 4).unwrap(), PieceColour::White, &board());
+            let positions = pawn_moves(
+                Position::try_from(1, 4).unwrap(),
+                PieceColour::White,
+                &board(),
+            );
             assert_eq!(
                 positions,
                 vec![
-                    Position::new(2, 4).unwrap(),
-                    Position::new(3, 4).unwrap(),
-                    Position::new(2, 3).unwrap()
+                    Position::try_from(2, 4).unwrap(),
+                    Position::try_from(3, 4).unwrap(),
+                    Position::try_from(2, 3).unwrap()
                 ]
             )
         }
@@ -215,7 +236,7 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(2, 3).unwrap(),
+                Position::try_from(2, 3).unwrap(),
             );
             builder.build()
         }
@@ -226,34 +247,53 @@ mod tests {
 
         #[test]
         fn blocks_forward_move_if_occupied() {
-            let positions = pawn_moves(Position::new(6, 3).unwrap(), PieceColour::Black, &board());
+            let positions = pawn_moves(
+                Position::try_from(6, 3).unwrap(),
+                PieceColour::Black,
+                &board(),
+            );
             assert!(positions.is_empty())
         }
 
         #[test]
         fn finds_pawn_move() {
-            let positions = pawn_moves(Position::new(5, 5).unwrap(), PieceColour::Black, &board());
-            assert_eq!(positions, vec![Position::new(4, 5).unwrap()])
+            let positions = pawn_moves(
+                Position::try_from(5, 5).unwrap(),
+                PieceColour::Black,
+                &board(),
+            );
+            assert_eq!(positions, vec![Position::try_from(4, 5).unwrap()])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
-            let positions = pawn_moves(Position::new(6, 5).unwrap(), PieceColour::Black, &board());
+            let positions = pawn_moves(
+                Position::try_from(6, 5).unwrap(),
+                PieceColour::Black,
+                &board(),
+            );
             assert_eq!(
                 positions,
-                vec![Position::new(5, 5).unwrap(), Position::new(4, 5).unwrap()]
+                vec![
+                    Position::try_from(5, 5).unwrap(),
+                    Position::try_from(4, 5).unwrap()
+                ]
             )
         }
 
         #[test]
         fn finds_capture_if_available() {
-            let positions = pawn_moves(Position::new(6, 4).unwrap(), PieceColour::Black, &board());
+            let positions = pawn_moves(
+                Position::try_from(6, 4).unwrap(),
+                PieceColour::Black,
+                &board(),
+            );
             assert_eq!(
                 positions,
                 vec![
-                    Position::new(5, 4).unwrap(),
-                    Position::new(4, 4).unwrap(),
-                    Position::new(5, 3).unwrap()
+                    Position::try_from(5, 4).unwrap(),
+                    Position::try_from(4, 4).unwrap(),
+                    Position::try_from(5, 3).unwrap()
                 ]
             )
         }
@@ -262,7 +302,7 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::White, PieceType::Rook),
-                Position::new(5, 3).unwrap(),
+                Position::try_from(5, 3).unwrap(),
             );
             builder.build()
         }
@@ -275,7 +315,7 @@ mod tests {
         fn applies_list_of_metrics_until_blocked() {
             let metrics = &[(1, 0), (0, 1), (-1, 0), (0, -1)];
             let positions = apply_metrics(
-                Position::new(0, 3).unwrap(),
+                Position::try_from(0, 3).unwrap(),
                 PieceColour::White,
                 metrics,
                 &board(),
@@ -283,9 +323,9 @@ mod tests {
             assert_eq!(
                 positions,
                 vec![
-                    Position::new(1, 3).unwrap(),
-                    Position::new(2, 3).unwrap(),
-                    Position::new(0, 2).unwrap()
+                    Position::try_from(1, 3).unwrap(),
+                    Position::try_from(2, 3).unwrap(),
+                    Position::try_from(0, 2).unwrap()
                 ]
             )
         }
@@ -294,15 +334,15 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(2, 3).unwrap(),
+                Position::try_from(2, 3).unwrap(),
             );
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Knight),
-                Position::new(0, 2).unwrap(),
+                Position::try_from(0, 2).unwrap(),
             );
             builder.piece(
                 Piece::new(PieceColour::White, PieceType::Rook),
-                Position::new(0, 4).unwrap(),
+                Position::try_from(0, 4).unwrap(),
             );
             builder.build()
         }
@@ -314,36 +354,39 @@ mod tests {
         #[test]
         fn returns_once_new_position_invalid() {
             let positions = apply_metric(
-                Position::new(1, 3).unwrap(),
+                Position::try_from(1, 3).unwrap(),
                 PieceColour::White,
                 (-1, 0),
                 &board(),
             );
-            assert_eq!(positions, vec![Position::new(0, 3).unwrap()])
+            assert_eq!(positions, vec![Position::try_from(0, 3).unwrap()])
         }
 
         #[test]
         fn returns_once_new_position_occupied_by_same_colour() {
             let positions = apply_metric(
-                Position::new(0, 3).unwrap(),
+                Position::try_from(0, 3).unwrap(),
                 PieceColour::Black,
                 (1, 0),
                 &board(),
             );
-            assert_eq!(positions, vec![Position::new(1, 3).unwrap()])
+            assert_eq!(positions, vec![Position::try_from(1, 3).unwrap()])
         }
 
         #[test]
         fn returns_once_new_position_occupied_by_opposite_colour_including_new_position() {
             let positions = apply_metric(
-                Position::new(0, 3).unwrap(),
+                Position::try_from(0, 3).unwrap(),
                 PieceColour::White,
                 (1, 0),
                 &board(),
             );
             assert_eq!(
                 positions,
-                vec![Position::new(1, 3).unwrap(), Position::new(2, 3).unwrap()]
+                vec![
+                    Position::try_from(1, 3).unwrap(),
+                    Position::try_from(2, 3).unwrap()
+                ]
             )
         }
 
@@ -351,7 +394,7 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(2, 3).unwrap(),
+                Position::try_from(2, 3).unwrap(),
             );
             builder.build()
         }
@@ -364,13 +407,13 @@ mod tests {
         fn applies_list_of_metrics_once_each() {
             let metrics = &[(-1, 0), (1, 0), (0, 1)];
             let positions = apply_metrics_once(
-                Position::new(0, 0).unwrap(),
+                Position::try_from(0, 0).unwrap(),
                 PieceColour::Black,
                 metrics,
                 &board(),
             );
 
-            assert_eq!(positions, vec![Position::new(0, 1).unwrap()])
+            assert_eq!(positions, vec![Position::try_from(0, 1).unwrap()])
         }
     }
 
@@ -380,7 +423,7 @@ mod tests {
         #[test]
         fn returns_none_if_new_position_is_invalid() {
             let position = apply_metric_once(
-                Position::new(0, 0).unwrap(),
+                Position::try_from(0, 0).unwrap(),
                 PieceColour::White,
                 (-1, 0),
                 &board(),
@@ -391,7 +434,7 @@ mod tests {
         #[test]
         fn returns_none_if_new_position_is_occupied_by_same_piece_colour() {
             let position = apply_metric_once(
-                Position::new(0, 0).unwrap(),
+                Position::try_from(0, 0).unwrap(),
                 PieceColour::Black,
                 (1, 0),
                 &board(),
@@ -402,26 +445,29 @@ mod tests {
         #[test]
         fn returns_new_position_if_occupied_by_opposite_piece_colour() {
             let position = apply_metric_once(
-                Position::new(0, 0).unwrap(),
+                Position::try_from(0, 0).unwrap(),
                 PieceColour::White,
                 (1, 0),
                 &board(),
             );
             assert_eq!(
                 position,
-                MoveOutcome::OccupiedOppositeColour(Position::new(1, 0).unwrap())
+                MoveOutcome::OccupiedOppositeColour(Position::try_from(1, 0).unwrap())
             )
         }
 
         #[test]
         fn returns_new_position_if_unoccupied() {
             let position = apply_metric_once(
-                Position::new(0, 0).unwrap(),
+                Position::try_from(0, 0).unwrap(),
                 PieceColour::White,
                 (0, 1),
                 &board(),
             );
-            assert_eq!(position, MoveOutcome::Empty(Position::new(0, 1).unwrap()))
+            assert_eq!(
+                position,
+                MoveOutcome::Empty(Position::try_from(0, 1).unwrap())
+            )
         }
     }
 
@@ -429,7 +475,7 @@ mod tests {
         let mut builder = BoardBuilder::new();
         builder.piece(
             Piece::new(PieceColour::Black, PieceType::Rook),
-            Position::new(1, 0).unwrap(),
+            Position::try_from(1, 0).unwrap(),
         );
         builder.build()
     }

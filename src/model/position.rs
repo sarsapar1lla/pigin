@@ -25,10 +25,16 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new(row: i8, col: i8) -> Result<Self, InvalidPositionError> {
-        if !(MIN_POSITION..=MAX_POSITION).contains(&row)
-            || !(MIN_POSITION..=MAX_POSITION).contains(&col)
-        {
+    pub fn new(row: i8, col: i8) -> Self {
+        if is_invalid(row, col) {
+            panic!("Invalid position ({row}, {col})");
+        } else {
+            Position { row, col }
+        }
+    }
+
+    pub fn try_from(row: i8, col: i8) -> Result<Self, InvalidPositionError> {
+        if is_invalid(row, col) {
             return Err(InvalidPositionError(format!(
                 "Invalid position: ({row}, {col})"
             )));
@@ -45,22 +51,26 @@ impl Position {
     }
 }
 
+fn is_invalid(row: i8, col: i8) -> bool {
+    !(MIN_POSITION..=MAX_POSITION).contains(&row) || !(MIN_POSITION..=MAX_POSITION).contains(&col)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn returns_position_if_valid() {
-        let position = Position::new(1, 1);
+        let position = Position::try_from(1, 1);
         assert_eq!(position, Ok(Position { row: 1, col: 1 }))
     }
 
     #[test]
     fn returns_error_if_position_is_invalid() {
-        let row_below_minimum = Position::new(-1, 3);
-        let row_above_maximum = Position::new(8, 3);
-        let col_below_minimum = Position::new(3, -1);
-        let col_above_maximum = Position::new(3, 8);
+        let row_below_minimum = Position::try_from(-1, 3);
+        let row_above_maximum = Position::try_from(8, 3);
+        let col_below_minimum = Position::try_from(3, -1);
+        let col_above_maximum = Position::try_from(3, 8);
 
         assert_eq!(
             row_below_minimum,
