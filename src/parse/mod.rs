@@ -46,7 +46,7 @@ mod tests {
 
     use crate::model::{
         AvailableCastle, BoardBuilder, Fen, GameResult, Movement, Piece, PieceColour, PieceType,
-        Ply, PlyMetadata, Position, Tags,
+        Ply, PlyMovement, Position, Tags,
     };
 
     use super::*;
@@ -71,26 +71,24 @@ mod tests {
         tags.insert("Black".to_string(), "Player, Two".to_string());
 
         let ply_list = vec![
-            PlyMetadata::new(
+            Ply::new(
                 1,
-                Ply::Move {
+                PlyMovement::Move {
                     movement: Movement::new(
-                        PieceType::Pawn,
-                        PieceColour::White,
-                        Position::new(3, 4).unwrap(),
+                        Piece::new(PieceColour::White, PieceType::Pawn),
+                        Position::new(3, 4),
                     ),
                     qualifier: None,
                     check: None,
                 },
                 None,
             ),
-            PlyMetadata::new(
+            Ply::new(
                 1,
-                Ply::Move {
+                PlyMovement::Move {
                     movement: Movement::new(
-                        PieceType::Pawn,
-                        PieceColour::Black,
-                        Position::new(4, 4).unwrap(),
+                        Piece::new(PieceColour::Black, PieceType::Pawn),
+                        Position::new(4, 4),
                     ),
                     qualifier: None,
                     check: None,
@@ -108,7 +106,7 @@ mod tests {
             .available_castles(vec![AvailableCastle::BlackKingside])
             .piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(7, 0).unwrap(),
+                Position::new(7, 0),
             );
 
         let board = board_builder.build();

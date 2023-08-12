@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{Piece, Position};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum AvailableCastle {
     WhiteKingside,
     WhiteQueenside,
@@ -10,7 +10,7 @@ pub enum AvailableCastle {
     BlackQueenside,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Board {
     grid: HashMap<Position, Piece>,
     available_castles: Vec<AvailableCastle>,
@@ -31,12 +31,37 @@ impl Board {
         self.grid.get(&position)
     }
 
+    pub fn search(&self, piece: Piece) -> Vec<Position> {
+        self.grid
+            .iter()
+            .filter_map(|(&key, &val)| if val == piece { Some(key) } else { None })
+            .collect()
+    }
+
     pub fn add(&mut self, piece: Piece, position: Position) {
         self.grid.insert(position, piece);
     }
 
     pub fn remove(&mut self, position: Position) {
         self.grid.remove(&position);
+    }
+
+    pub fn remove_available_castle(&mut self, available_castle: AvailableCastle) {
+        let index = self
+            .available_castles
+            .iter()
+            .position(|x| x == &available_castle);
+        if let Some(index) = index {
+            self.available_castles.remove(index);
+        }
+    }
+
+    pub fn remove_en_passant_square(&mut self) {
+        self.en_passant_square.take();
+    }
+
+    pub fn update_en_passant_square(&mut self, position: Position) {
+        self.en_passant_square.replace(position);
     }
 }
 

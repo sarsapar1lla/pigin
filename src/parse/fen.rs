@@ -6,6 +6,7 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{i8, u8};
 use nom::combinator::all_consuming;
+use nom::multi::many0;
 use nom::{
     character::complete::one_of,
     combinator::{map, map_res},
@@ -64,10 +65,11 @@ fn board_from(
             }
             FenCharacter::Empty(spaces) => col += spaces,
             FenCharacter::Piece(piece) => {
-                let position = Position::new(row, col).map_err(|e| {
+                let position = Position::try_from(row, col).map_err(|e| {
                     PgnParseError::new(format!("Failed to create position for fen character: {e}"))
                 })?;
                 builder.piece(piece, position);
+                col += 1;
             }
         }
     }
@@ -78,17 +80,7 @@ fn board_from(
 fn fen_characters(input: &str) -> IResult<&str, Vec<FenCharacter>> {
     let parser = alt((new_row, empty_spaces, piece));
 
-    terminated(
-        fold_many0(
-            parser,
-            Vec::new,
-            |mut acc: Vec<FenCharacter>, item: FenCharacter| {
-                acc.push(item);
-                acc
-            },
-        ),
-        tag(" "),
-    )(input)
+    terminated(many0(parser), tag(" "))(input)
 }
 
 fn new_row(input: &str) -> IResult<&str, FenCharacter> {
@@ -207,14 +199,14 @@ mod tests {
                 AvailableCastle::WhiteQueenside,
                 AvailableCastle::BlackKingside,
             ]);
-            board_builder.en_passant_square(Position::new(3, 3).unwrap());
+            board_builder.en_passant_square(Position::new(3, 3));
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::new(7, 0).unwrap(),
+                Position::new(7, 0),
             );
             board_builder.piece(
                 Piece::new(PieceColour::White, PieceType::King),
-                Position::new(0, 6).unwrap(),
+                Position::new(0, 6),
             );
 
             let starting_board = board_builder.build();
@@ -241,12 +233,8 @@ mod tests {
 
         #[test]
         fn adds_en_passant_square_if_present() {
-            let result =
-                board_from(Vec::new(), Vec::new(), Some(Position::new(0, 0).unwrap())).unwrap();
-            assert_eq!(
-                result.en_passant_square(),
-                Some(&Position::new(0, 0,).unwrap())
-            )
+            let result = board_from(Vec::new(), Vec::new(), Some(Position::new(0, 0))).unwrap();
+            assert_eq!(result.en_passant_square(), Some(&Position::new(0, 0,)))
         }
 
         #[test]
@@ -262,11 +250,11 @@ mod tests {
             let mut board_builder = BoardBuilder::new();
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Bishop),
-                Position::new(7, 6).unwrap(),
+                Position::new(7, 6),
             );
             board_builder.piece(
                 Piece::new(PieceColour::White, PieceType::Knight),
-                Position::new(6, 2).unwrap(),
+                Position::new(6, 2),
             );
             let expected = board_builder.build();
 
@@ -431,7 +419,7 @@ mod tests {
         #[test]
         fn parses_some_en_passent_square() {
             let result = en_passant_square("e4 something").unwrap();
-            assert_eq!(result, ("something", Some(Position::new(3, 4).unwrap())))
+            assert_eq!(result, ("something", Some(Position::new(3, 4))))
         }
     }
 }
