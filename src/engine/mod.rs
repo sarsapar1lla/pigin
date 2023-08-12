@@ -1,8 +1,8 @@
 mod castle;
+mod en_passant;
 mod error;
 mod legality;
 mod moves;
-mod en_passant;
 
 use crate::model::{
     AvailableCastle, Board, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply,
@@ -49,6 +49,7 @@ fn execute_move(board: &Board, ply: &PlyMovement) -> Result<Board, EngineError> 
     }
 }
 
+// TODO: write tests
 fn piece_move(
     board: &Board,
     movement: &Movement,
@@ -59,10 +60,15 @@ fn piece_move(
     let position = movement.position();
 
     let candidates = board.search(piece);
-    let king_position = {
-        let positions = board.search(Piece::new(piece.colour().to_owned(), PieceType::King));
-        positions.first().unwrap().to_owned()
-    };
+    let king_position = *board
+        .search(Piece::new(*piece.colour(), PieceType::King))
+        .first()
+        .ok_or_else(|| {
+            EngineError::new(format!(
+                "Could not locate king of colour {:?}",
+                piece.colour()
+            ))
+        })?;
     let opposition_colour = match *piece.colour() {
         PieceColour::White => PieceColour::Black,
         PieceColour::Black => PieceColour::White,
@@ -73,8 +79,6 @@ fn piece_move(
             "No candidates found for piece {piece:?}"
         )));
     }
-
-    // println!("{movement:?}, {qualifier:?}, {candidates:?}");
 
     let viable_candidates: Vec<Position> = candidates
         .into_iter()
@@ -110,7 +114,7 @@ fn piece_move(
 
     let mut next_board = board.clone();
     next_board.remove(candidate);
-    
+
     if let Some(&en_passant_square) = board.en_passant_square() {
         en_passant::current(piece, position, en_passant_square, &mut next_board);
     }

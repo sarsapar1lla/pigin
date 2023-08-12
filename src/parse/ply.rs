@@ -339,7 +339,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(5, 0).unwrap()
+                            Position::new(5, 0)
                         ),
                         qualifier: None,
                         check: None,
@@ -358,7 +358,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(5, 1).unwrap()
+                            Position::new(5, 1)
                         ),
                         qualifier: Some(MoveQualifier::Col(0)),
                         check: None,
@@ -377,9 +377,9 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(5, 1).unwrap()
+                            Position::new(5, 1)
                         ),
-                        qualifier: Some(MoveQualifier::Position(Position::try_from(4, 0).unwrap())),
+                        qualifier: Some(MoveQualifier::Position(Position::new(4, 0))),
                         check: None,
                     }
                 )
@@ -396,7 +396,7 @@ mod tests {
                     PlyMovement::Promotion {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(7, 0).unwrap()
+                            Position::new(7, 0)
                         ),
                         promotes_to: PieceType::Rook,
                         qualifier: None,
@@ -416,7 +416,7 @@ mod tests {
                     PlyMovement::Promotion {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(7, 1).unwrap()
+                            Position::new(7, 1)
                         ),
                         promotes_to: PieceType::Rook,
                         qualifier: Some(MoveQualifier::Col(0)),
@@ -436,7 +436,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Knight),
-                            Position::try_from(6, 3).unwrap()
+                            Position::new(6, 3)
                         ),
                         qualifier: None,
                         check: None,
@@ -455,7 +455,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Knight),
-                            Position::try_from(6, 3).unwrap()
+                            Position::new(6, 3)
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
                         check: None,
@@ -474,7 +474,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Knight),
-                            Position::try_from(6, 3).unwrap()
+                            Position::new(6, 3)
                         ),
                         qualifier: Some(MoveQualifier::Row(5)),
                         check: None,
@@ -493,9 +493,9 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Knight),
-                            Position::try_from(6, 3).unwrap()
+                            Position::new(6, 3)
                         ),
-                        qualifier: Some(MoveQualifier::Position(Position::try_from(5, 1).unwrap())),
+                        qualifier: Some(MoveQualifier::Position(Position::new(5, 1))),
                         check: None,
                     }
                 )
@@ -512,7 +512,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Bishop),
-                            Position::try_from(4, 2).unwrap(),
+                            Position::new(4, 2),
                         ),
                         qualifier: None,
                         check: None
@@ -531,7 +531,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(3, 4).unwrap()
+                            Position::new(3, 4)
                         ),
                         qualifier: None,
                         check: Some(Check::Check),
@@ -550,7 +550,7 @@ mod tests {
                     PlyMovement::Move {
                         movement: Movement::new(
                             Piece::new(PieceColour::White, PieceType::Pawn),
-                            Position::try_from(3, 4).unwrap()
+                            Position::new(3, 4)
                         ),
                         qualifier: None,
                         check: Some(Check::Checkmate),
@@ -572,7 +572,7 @@ mod tests {
         #[test]
         fn parses_position() {
             let result = position_with_qualifier("e4 e5").unwrap();
-            assert_eq!(result, (" e5", (None, Position::try_from(3, 4).unwrap())))
+            assert_eq!(result, (" e5", (None, Position::new(3, 4))))
         }
 
         #[test]
@@ -580,13 +580,7 @@ mod tests {
             let result = position_with_qualifier("dxe4 e5").unwrap();
             assert_eq!(
                 result,
-                (
-                    " e5",
-                    (
-                        Some(MoveQualifier::Col(3)),
-                        Position::try_from(3, 4).unwrap()
-                    )
-                )
+                (" e5", (Some(MoveQualifier::Col(3)), Position::new(3, 4)))
             )
         }
 
@@ -599,7 +593,7 @@ mod tests {
                     " e5",
                     (
                         Some(MoveQualifier::Position(Position::try_from(2, 3).unwrap())),
-                        Position::try_from(3, 4).unwrap()
+                        Position::new(3, 4)
                     )
                 )
             )
@@ -648,10 +642,7 @@ mod tests {
             let result = move_qualifier("e4xd5").unwrap();
             assert_eq!(
                 result,
-                (
-                    "xd5",
-                    MoveQualifier::Position(Position::try_from(3, 4).unwrap())
-                )
+                ("xd5", MoveQualifier::Position(Position::new(3, 4)))
             )
         }
     }

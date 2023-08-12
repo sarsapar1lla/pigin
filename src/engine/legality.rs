@@ -11,7 +11,6 @@ pub fn check(
     colour: PieceColour,
     mut board: Board,
 ) -> bool {
-
     if *piece.piece_type() == PieceType::King {
         return true;
     }

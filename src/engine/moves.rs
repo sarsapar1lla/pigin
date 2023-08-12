@@ -86,7 +86,11 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
         .filter_map(
             |&metric| match apply_metric_once(position, colour, metric, board) {
                 MoveOutcome::OccupiedOppositeColour(new_position) => Some(new_position),
-                MoveOutcome::Empty(new_position) if Some(&new_position) == board.en_passant_square() => Some(new_position),
+                MoveOutcome::Empty(new_position)
+                    if Some(&new_position) == board.en_passant_square() =>
+                {
+                    Some(new_position)
+                }
                 _ => None,
             },
         )
@@ -125,7 +129,7 @@ fn apply_metric(
             }
             MoveOutcome::Empty(new_position) => {
                 positions.push(new_position);
-                position = new_position
+                position = new_position;
             }
         }
     }
@@ -141,10 +145,10 @@ fn apply_metrics_once(
         .iter()
         .filter_map(
             |&metric| match apply_metric_once(position, colour, metric, board) {
-                MoveOutcome::Empty(position) => Some(position),
-                MoveOutcome::OccupiedOppositeColour(position) => Some(position),
-                MoveOutcome::OccupiedSameColour => None,
-                MoveOutcome::Invalid => None,
+                MoveOutcome::Empty(position) | MoveOutcome::OccupiedOppositeColour(position) => {
+                    Some(position)
+                }
+                MoveOutcome::OccupiedSameColour | MoveOutcome::Invalid => None,
             },
         )
         .collect()
@@ -160,13 +164,14 @@ fn apply_metric_once(
     let col = position.col() + metric.1;
     let new_position = Position::try_from(row, col);
 
-    new_position
-        .map(|p| match board.occupant(p) {
+    new_position.map_or_else(
+        |_| MoveOutcome::Invalid,
+        |p| match board.occupant(p) {
             None => MoveOutcome::Empty(p),
             Some(piece) if piece.colour() != &colour => MoveOutcome::OccupiedOppositeColour(p),
             _ => MoveOutcome::OccupiedSameColour,
-        })
-        .unwrap_or_else(|_| MoveOutcome::Invalid)
+        },
+    )
 }
 
 #[cfg(test)]
@@ -180,47 +185,25 @@ mod tests {
 
         #[test]
         fn blocks_forward_move_if_occupied() {
-            let positions = pawn_moves(
-                Position::new(1, 3),
-                PieceColour::White,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(1, 3), PieceColour::White, &board());
             assert!(positions.is_empty())
         }
 
         #[test]
         fn finds_pawn_move() {
-            let positions = pawn_moves(
-                Position::new(2, 5),
-                PieceColour::White,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(2, 5), PieceColour::White, &board());
             assert_eq!(positions, vec![Position::new(3, 5)])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
-            let positions = pawn_moves(
-                Position::new(1, 5),
-                PieceColour::White,
-                &board(),
-            );
-            assert_eq!(
-                positions,
-                vec![
-                    Position::new(2, 5),
-                    Position::new(3, 5),
-                ]
-            )
+            let positions = pawn_moves(Position::new(1, 5), PieceColour::White, &board());
+            assert_eq!(positions, vec![Position::new(2, 5), Position::new(3, 5),])
         }
 
         #[test]
         fn finds_capture_if_available() {
-            let positions = pawn_moves(
-                Position::new(1, 4),
-                PieceColour::White,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(1, 4), PieceColour::White, &board());
             assert_eq!(
                 positions,
                 vec![
@@ -233,18 +216,8 @@ mod tests {
 
         #[test]
         fn finds_en_passant_capture_if_available() {
-            let positions = pawn_moves(
-                Position::new(4, 4),
-                PieceColour::White,
-                &board(),
-            );
-            assert_eq!(
-                positions,
-                vec![
-                    Position::new(5, 4),
-                    Position::new(5, 5),
-                ]
-            )
+            let positions = pawn_moves(Position::new(4, 4), PieceColour::White, &board());
+            assert_eq!(positions, vec![Position::new(5, 4), Position::new(5, 5),])
         }
 
         fn board() -> Board {
@@ -263,47 +236,25 @@ mod tests {
 
         #[test]
         fn blocks_forward_move_if_occupied() {
-            let positions = pawn_moves(
-                Position::new(6, 3),
-                PieceColour::Black,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(6, 3), PieceColour::Black, &board());
             assert!(positions.is_empty())
         }
 
         #[test]
         fn finds_pawn_move() {
-            let positions = pawn_moves(
-                Position::new(5, 5),
-                PieceColour::Black,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(5, 5), PieceColour::Black, &board());
             assert_eq!(positions, vec![Position::new(4, 5)])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
-            let positions = pawn_moves(
-                Position::new(6, 5),
-                PieceColour::Black,
-                &board(),
-            );
-            assert_eq!(
-                positions,
-                vec![
-                    Position::new(5, 5),
-                    Position::new(4, 5)
-                ]
-            )
+            let positions = pawn_moves(Position::new(6, 5), PieceColour::Black, &board());
+            assert_eq!(positions, vec![Position::new(5, 5), Position::new(4, 5)])
         }
 
         #[test]
         fn finds_capture_if_available() {
-            let positions = pawn_moves(
-                Position::new(6, 4),
-                PieceColour::Black,
-                &board(),
-            );
+            let positions = pawn_moves(Position::new(6, 4), PieceColour::Black, &board());
             assert_eq!(
                 positions,
                 vec![
@@ -316,18 +267,8 @@ mod tests {
 
         #[test]
         fn finds_en_passant_capture_if_available() {
-            let positions = pawn_moves(
-                Position::new(5, 6),
-                PieceColour::Black,
-                &board(),
-            );
-            assert_eq!(
-                positions,
-                vec![
-                    Position::new(4, 6),
-                    Position::new(4, 7)
-                ]
-            )
+            let positions = pawn_moves(Position::new(5, 6), PieceColour::Black, &board());
+            assert_eq!(positions, vec![Position::new(4, 6), Position::new(4, 7)])
         }
 
         fn board() -> Board {

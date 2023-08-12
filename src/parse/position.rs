@@ -50,7 +50,7 @@ mod tests {
         #[test]
         fn parses_position() {
             let result = parse("e4 Nc5").unwrap();
-            assert_eq!(result, (" Nc5", Position::try_from(3, 4).unwrap()))
+            assert_eq!(result, (" Nc5", Position::new(3, 4)))
         }
     }
 
