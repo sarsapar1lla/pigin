@@ -17,7 +17,6 @@ pub fn check(
     }
 
     board.remove(from);
-    board.remove(to);
     board.add(piece, to);
 
     !RANGED_PIECES

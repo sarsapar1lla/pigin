@@ -86,14 +86,13 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
         .filter_map(
             |&metric| match apply_metric_once(position, colour, metric, board) {
                 MoveOutcome::OccupiedOppositeColour(new_position) => Some(new_position),
+                MoveOutcome::Empty(new_position) if Some(&new_position) == board.en_passant_square() => Some(new_position),
                 _ => None,
             },
         )
         .collect();
 
     positions.append(&mut capture_moves);
-
-    // TODO: add en-passant
 
     positions
 }
@@ -182,7 +181,7 @@ mod tests {
         #[test]
         fn blocks_forward_move_if_occupied() {
             let positions = pawn_moves(
-                Position::try_from(1, 3).unwrap(),
+                Position::new(1, 3),
                 PieceColour::White,
                 &board(),
             );
@@ -192,25 +191,25 @@ mod tests {
         #[test]
         fn finds_pawn_move() {
             let positions = pawn_moves(
-                Position::try_from(2, 5).unwrap(),
+                Position::new(2, 5),
                 PieceColour::White,
                 &board(),
             );
-            assert_eq!(positions, vec![Position::try_from(3, 5).unwrap()])
+            assert_eq!(positions, vec![Position::new(3, 5)])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
             let positions = pawn_moves(
-                Position::try_from(1, 5).unwrap(),
+                Position::new(1, 5),
                 PieceColour::White,
                 &board(),
             );
             assert_eq!(
                 positions,
                 vec![
-                    Position::try_from(2, 5).unwrap(),
-                    Position::try_from(3, 5).unwrap()
+                    Position::new(2, 5),
+                    Position::new(3, 5),
                 ]
             )
         }
@@ -218,16 +217,32 @@ mod tests {
         #[test]
         fn finds_capture_if_available() {
             let positions = pawn_moves(
-                Position::try_from(1, 4).unwrap(),
+                Position::new(1, 4),
                 PieceColour::White,
                 &board(),
             );
             assert_eq!(
                 positions,
                 vec![
-                    Position::try_from(2, 4).unwrap(),
-                    Position::try_from(3, 4).unwrap(),
-                    Position::try_from(2, 3).unwrap()
+                    Position::new(2, 4),
+                    Position::new(3, 4),
+                    Position::new(2, 3)
+                ]
+            )
+        }
+
+        #[test]
+        fn finds_en_passant_capture_if_available() {
+            let positions = pawn_moves(
+                Position::new(4, 4),
+                PieceColour::White,
+                &board(),
+            );
+            assert_eq!(
+                positions,
+                vec![
+                    Position::new(5, 4),
+                    Position::new(5, 5),
                 ]
             )
         }
@@ -236,8 +251,9 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
-                Position::try_from(2, 3).unwrap(),
+                Position::new(2, 3),
             );
+            builder.en_passant_square(Position::new(5, 5));
             builder.build()
         }
     }
@@ -248,7 +264,7 @@ mod tests {
         #[test]
         fn blocks_forward_move_if_occupied() {
             let positions = pawn_moves(
-                Position::try_from(6, 3).unwrap(),
+                Position::new(6, 3),
                 PieceColour::Black,
                 &board(),
             );
@@ -258,25 +274,25 @@ mod tests {
         #[test]
         fn finds_pawn_move() {
             let positions = pawn_moves(
-                Position::try_from(5, 5).unwrap(),
+                Position::new(5, 5),
                 PieceColour::Black,
                 &board(),
             );
-            assert_eq!(positions, vec![Position::try_from(4, 5).unwrap()])
+            assert_eq!(positions, vec![Position::new(4, 5)])
         }
 
         #[test]
         fn finds_double_move_if_on_home_row() {
             let positions = pawn_moves(
-                Position::try_from(6, 5).unwrap(),
+                Position::new(6, 5),
                 PieceColour::Black,
                 &board(),
             );
             assert_eq!(
                 positions,
                 vec![
-                    Position::try_from(5, 5).unwrap(),
-                    Position::try_from(4, 5).unwrap()
+                    Position::new(5, 5),
+                    Position::new(4, 5)
                 ]
             )
         }
@@ -284,16 +300,32 @@ mod tests {
         #[test]
         fn finds_capture_if_available() {
             let positions = pawn_moves(
-                Position::try_from(6, 4).unwrap(),
+                Position::new(6, 4),
                 PieceColour::Black,
                 &board(),
             );
             assert_eq!(
                 positions,
                 vec![
-                    Position::try_from(5, 4).unwrap(),
-                    Position::try_from(4, 4).unwrap(),
-                    Position::try_from(5, 3).unwrap()
+                    Position::new(5, 4),
+                    Position::new(4, 4),
+                    Position::new(5, 3)
+                ]
+            )
+        }
+
+        #[test]
+        fn finds_en_passant_capture_if_available() {
+            let positions = pawn_moves(
+                Position::new(5, 6),
+                PieceColour::Black,
+                &board(),
+            );
+            assert_eq!(
+                positions,
+                vec![
+                    Position::new(4, 6),
+                    Position::new(4, 7)
                 ]
             )
         }
@@ -302,8 +334,9 @@ mod tests {
             let mut builder = BoardBuilder::new();
             builder.piece(
                 Piece::new(PieceColour::White, PieceType::Rook),
-                Position::try_from(5, 3).unwrap(),
+                Position::new(5, 3),
             );
+            builder.en_passant_square(Position::new(4, 7));
             builder.build()
         }
     }

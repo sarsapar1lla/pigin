@@ -2,6 +2,7 @@ mod castle;
 mod error;
 mod legality;
 mod moves;
+mod en_passant;
 
 use crate::model::{
     AvailableCastle, Board, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply,
@@ -109,16 +110,23 @@ fn piece_move(
 
     let mut next_board = board.clone();
     next_board.remove(candidate);
+    
+    if let Some(&en_passant_square) = board.en_passant_square() {
+        en_passant::current(piece, position, en_passant_square, &mut next_board);
+    }
+
     match promotes_to {
         None => next_board.add(piece, position),
         Some(&other) => next_board.add(Piece::new(*piece.colour(), other), position),
     };
 
+    en_passant::next(piece, candidate, position, &mut next_board);
     update_available_castles(piece, candidate, &mut next_board);
 
     Ok(next_board)
 }
 
+// TODO: write tests
 fn qualified_position(
     candidates: &[Position],
     qualifier: &MoveQualifier,
@@ -160,6 +168,7 @@ fn qualified_position(
     }
 }
 
+// TODO: consider removing this
 fn update_available_castles(piece: Piece, position: Position, board: &mut Board) -> &mut Board {
     match (piece.piece_type(), piece.colour()) {
         (PieceType::King, PieceColour::White) => {
