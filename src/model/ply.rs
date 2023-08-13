@@ -61,13 +61,13 @@ pub enum PlyMovement {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ply {
-    move_number: i8,
+    move_number: i16,
     movement: PlyMovement,
     comment: Option<String>,
 }
 
 impl Ply {
-    pub fn new(move_number: i8, ply: PlyMovement, comment: Option<String>) -> Self {
+    pub fn new(move_number: i16, ply: PlyMovement, comment: Option<String>) -> Self {
         Ply {
             move_number,
             movement: ply,
@@ -75,7 +75,7 @@ impl Ply {
         }
     }
 
-    pub fn move_number(&self) -> i8 {
+    pub fn move_number(&self) -> i16 {
         self.move_number
     }
 
