@@ -54,12 +54,12 @@ fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
 }
 
 fn white_move_number(input: &str) -> IResult<&str, i16> {
-    let terminator = tuple((char('.'), opt(tag("\n")), space0));
+    let terminator = tuple((char('.'), opt(line_ending), space0));
     map_res(terminated(digit1, terminator), |s: &str| s.parse::<i16>())(input)
 }
 
 fn black_move_number(input: &str) -> IResult<&str, i16> {
-    let terminator = tuple((tag("..."), opt(tag("\n")), space0));
+    let terminator = tuple((tag("..."), opt(line_ending), space0));
     map_res(terminated(digit1, terminator), |s: &str| s.parse::<i16>())(input)
 }
 
@@ -332,6 +332,12 @@ mod tests {
             let result = white_move_number("1.\ne4").unwrap();
             assert_eq!(result, ("e4", 1))
         }
+
+        #[test]
+        fn parses_move_number_with_line_ending() {
+            let result = white_move_number("1.\r\ne4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
     }
 
     mod black_move_number_tests {
@@ -352,6 +358,12 @@ mod tests {
         #[test]
         fn parses_move_number_with_newline() {
             let result = black_move_number("1...\ne4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
+
+        #[test]
+        fn parses_move_number_with_line_ending() {
+            let result = black_move_number("1...\r\ne4").unwrap();
             assert_eq!(result, ("e4", 1))
         }
     }
