@@ -1,9 +1,10 @@
 use crate::model::{PieceColour, Ply};
 use nom::branch::alt;
+use nom::bytes::complete::tag;
 use nom::bytes::complete::take_until;
 use nom::character::complete::{char, line_ending, space1};
 use nom::combinator::{map, opt};
-use nom::multi::many0;
+use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::{
     character::complete::{digit1, space0},
@@ -15,13 +16,15 @@ use nom::{
 use super::{ply, result};
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Ply>> {
-    map(many0(parse_move), |list| {
+    let ply_parser = map(many1(parse_move), |list| {
         list.into_iter().flatten().collect()
-    })(input)
+    });
+    let result_only_parser = map(result::parse, |_| Vec::new());
+    alt((ply_parser, result_only_parser))(input)
 }
 
 fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
-    let (remaining, move_number) = move_number(input)?;
+    let (remaining, move_number) = white_move_number(input)?;
     let (remaining, white_ply) = ply::parse(remaining, PieceColour::White)?;
     let (remaining, white_comment) = opt(comment)(remaining)?;
 
@@ -34,6 +37,8 @@ fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
         ));
     }
 
+    let (remaining, maybe_black_move_number) = opt(black_move_number)(remaining)?;
+
     let (remaining, black_ply) = ply::parse(remaining, PieceColour::Black)?;
     let (remaining, black_comment) = opt(comment)(remaining)?;
 
@@ -43,15 +48,19 @@ fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
         remaining,
         vec![
             Ply::new(move_number, white_ply, white_comment),
-            Ply::new(move_number, black_ply, black_comment),
+            Ply::new(maybe_black_move_number.unwrap_or(move_number), black_ply, black_comment),
         ],
     ))
 }
 
-fn move_number(input: &str) -> IResult<&str, i8> {
-    map_res(terminated(digit1, tuple((char('.'), space0))), |s: &str| {
-        s.parse::<i8>()
-    })(input)
+fn white_move_number(input: &str) -> IResult<&str, i16> {
+    let terminator = tuple((char('.'), opt(tag("\n")), space0));
+    map_res(terminated(digit1, terminator), |s: &str| s.parse::<i16>())(input)
+}
+
+fn black_move_number(input: &str) -> IResult<&str, i16> {
+    let terminator = tuple((tag("..."), opt(tag("\n")), space0));
+    map_res(terminated(digit1, terminator), |s: &str| s.parse::<i16>())(input)
 }
 
 fn comment(input: &str) -> IResult<&str, String> {
@@ -59,7 +68,7 @@ fn comment(input: &str) -> IResult<&str, String> {
 }
 
 fn parenthesis_comment(input: &str) -> IResult<&str, String> {
-    let parser = terminated(delimited(char('{'), take_until("}"), char('}')), space1);
+    let parser = terminated(delimited(char('{'), take_until("}"), char('}')), alt((space1, line_ending)));
     map(parser, |s: &str| s.replace('\n', " "))(input)
 }
 
@@ -71,6 +80,80 @@ fn semicolon_comment(input: &str) -> IResult<&str, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod parse_tests {
+        use crate::model::{Movement, Piece, PieceType, PlyMovement, Position};
+
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_moves() {
+            let result = parse("something");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_result_only() {
+            let result = parse("1-0 something").unwrap();
+            assert_eq!(result, (" something", vec![]))
+        }
+
+        #[test]
+        fn parses_moves() {
+            let result = parse("1.e4 e5 2.Nc3 Nf6 something").unwrap();
+            let expected = vec![
+                Ply::new(
+                    1,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::White, PieceType::Pawn),
+                            Position::new(3, 4),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    1,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::Black, PieceType::Pawn),
+                            Position::new(4, 4),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    2,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::White, PieceType::Knight),
+                            Position::new(2, 2),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    2,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::Black, PieceType::Knight),
+                            Position::new(5, 5),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+            ];
+            assert_eq!(result, ("something", expected))
+        }
+    }
 
     mod parse_move_tests {
         use crate::model::{
@@ -115,6 +198,38 @@ mod tests {
                 ),
             ];
             assert_eq!(result, ("2. d4 exd4+", expected_ply))
+        }
+
+        #[test]
+        fn parses_move_with_black_move_numbers() {
+            let result = parse_move("1. e4 1... e5 2. d4 2... exd4+").unwrap();
+            let expected_ply = vec![
+                Ply::new(
+                    1,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::White, PieceType::Pawn),
+                            Position::new(3, 4),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    1,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::Black, PieceType::Pawn),
+                            Position::new(4, 4),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+            ];
+            assert_eq!(result, ("2. d4 2... exd4+", expected_ply))
         }
 
         #[test]
@@ -197,18 +312,46 @@ mod tests {
         }
     }
 
-    mod move_number_tests {
+    mod white_move_number_tests {
         use super::*;
 
         #[test]
         fn parses_move_number_with_space() {
-            let result = move_number("1. e4").unwrap();
+            let result = white_move_number("1. e4").unwrap();
             assert_eq!(result, ("e4", 1))
         }
 
         #[test]
         fn parses_move_number_without_space() {
-            let result = move_number("1.e4").unwrap();
+            let result = white_move_number("1.e4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
+
+        #[test]
+        fn parses_move_number_with_newline() {
+            let result = white_move_number("1.\ne4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
+    }
+
+    mod black_move_number_tests {
+        use super::*;
+
+        #[test]
+        fn parses_move_number_with_space() {
+            let result = black_move_number("1... e4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
+
+        #[test]
+        fn parses_move_number_without_space() {
+            let result = black_move_number("1...e4").unwrap();
+            assert_eq!(result, ("e4", 1))
+        }
+
+        #[test]
+        fn parses_move_number_with_newline() {
+            let result = black_move_number("1...\ne4").unwrap();
             assert_eq!(result, ("e4", 1))
         }
     }
@@ -219,6 +362,12 @@ mod tests {
         #[test]
         fn parses_comment_in_parenthesis() {
             let result = comment("{Comment} d5").unwrap();
+            assert_eq!(result, ("d5", "Comment".to_string()))
+        }
+
+        #[test]
+        fn parses_comment_in_parenthesis_at_line_end() {
+            let result = comment("{Comment}\nd5").unwrap();
             assert_eq!(result, ("d5", "Comment".to_string()))
         }
 

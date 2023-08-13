@@ -28,8 +28,26 @@ mod tests {
     }
 
     #[test]
-    fn parses_result() {
+    fn parses_white_win() {
+        let result = parse("1-0 something").unwrap();
+        assert_eq!(result, (" something", GameResult::WhiteWin))
+    }
+
+    #[test]
+    fn parses_black_win() {
         let result = parse("0-1 something").unwrap();
         assert_eq!(result, (" something", GameResult::BlackWin))
+    }
+
+    #[test]
+    fn parses_draw() {
+        let result = parse("1/2-1/2 something").unwrap();
+        assert_eq!(result, (" something", GameResult::Draw))
+    }
+
+    #[test]
+    fn parses_ongoing() {
+        let result = parse("* something").unwrap();
+        assert_eq!(result, (" something", GameResult::Ongoing))
     }
 }

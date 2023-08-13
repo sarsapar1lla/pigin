@@ -8,6 +8,10 @@ impl PgnParseError {
     pub fn new(message: impl Into<String>) -> Self {
         PgnParseError(message.into())
     }
+
+    pub fn message(&self) -> &str {
+        &self.0
+    }
 }
 
 impl ParseError<&str> for PgnParseError {
