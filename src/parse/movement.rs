@@ -4,7 +4,7 @@ use nom::bytes::complete::tag;
 use nom::bytes::complete::take_until;
 use nom::character::complete::{char, line_ending, space1};
 use nom::combinator::{map, opt};
-use nom::multi::many1;
+use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{
     character::complete::{digit1, space0},
@@ -16,11 +16,19 @@ use nom::{
 use super::{ply, result};
 
 pub fn parse(input: &str) -> IResult<&str, Vec<Ply>> {
-    let ply_parser = map(many1(parse_move), |list| {
-        list.into_iter().flatten().collect()
-    });
     let result_only_parser = map(result::parse, |_| Vec::new());
-    alt((ply_parser, result_only_parser))(input)
+    alt((result_only_parser, parse_moves))(input)
+}
+
+fn parse_moves(input: &str) -> IResult<&str, Vec<Ply>> {
+    let (remaining, mut first_move) =
+        alt((parse_move, map(parse_partial_move, |ply| vec![ply])))(input)?;
+
+    let (remaining, mut other_moves) = map(many0(parse_move), |list| {
+        list.into_iter().flatten().collect()
+    })(remaining)?;
+    first_move.append(&mut other_moves);
+    Ok((remaining, first_move))
 }
 
 fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
@@ -48,9 +56,24 @@ fn parse_move(input: &str) -> IResult<&str, Vec<Ply>> {
         remaining,
         vec![
             Ply::new(move_number, white_ply, white_comment),
-            Ply::new(maybe_black_move_number.unwrap_or(move_number), black_ply, black_comment),
+            Ply::new(
+                maybe_black_move_number.unwrap_or(move_number),
+                black_ply,
+                black_comment,
+            ),
         ],
     ))
+}
+
+fn parse_partial_move(input: &str) -> IResult<&str, Ply> {
+    let (remaining, move_number) = black_move_number(input)?;
+
+    let (remaining, ply) = ply::parse(remaining, PieceColour::Black)?;
+    let (remaining, comment) = opt(comment)(remaining)?;
+
+    let (remaining, _) = opt(result::parse)(remaining)?;
+
+    Ok((remaining, Ply::new(move_number, ply, comment)))
 }
 
 fn white_move_number(input: &str) -> IResult<&str, i16> {
@@ -68,7 +91,10 @@ fn comment(input: &str) -> IResult<&str, String> {
 }
 
 fn parenthesis_comment(input: &str) -> IResult<&str, String> {
-    let parser = terminated(delimited(char('{'), take_until("}"), char('}')), alt((space1, line_ending)));
+    let parser = terminated(
+        delimited(char('{'), take_until("}"), char('}')),
+        alt((space1, line_ending)),
+    );
     map(parser, |s: &str| s.replace('\n', " "))(input)
 }
 
@@ -114,6 +140,50 @@ mod tests {
                     },
                     None,
                 ),
+                Ply::new(
+                    1,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::Black, PieceType::Pawn),
+                            Position::new(4, 4),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    2,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::White, PieceType::Knight),
+                            Position::new(2, 2),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+                Ply::new(
+                    2,
+                    PlyMovement::Move {
+                        movement: Movement::new(
+                            Piece::new(PieceColour::Black, PieceType::Knight),
+                            Position::new(5, 5),
+                        ),
+                        qualifier: None,
+                        check: None,
+                    },
+                    None,
+                ),
+            ];
+            assert_eq!(result, ("something", expected))
+        }
+
+        #[test]
+        fn parses_partial_moves() {
+            let result = parse("1...e5 2.Nc3 Nf6 something").unwrap();
+            let expected = vec![
                 Ply::new(
                     1,
                     PlyMovement::Move {
@@ -309,6 +379,87 @@ mod tests {
                 ),
             ];
             assert_eq!(result, (" something", expected_ply))
+        }
+    }
+
+    mod parse_partial_move_tests {
+        use crate::model::{Movement, Piece, PieceType, PlyMovement, Position};
+
+        use super::*;
+
+        #[test]
+        fn returns_err_if_not_move() {
+            let result = parse_partial_move("something");
+            assert!(result.is_err())
+        }
+
+        #[test]
+        fn parses_partial_move() {
+            let result = parse_partial_move("2... e5 3. d4").unwrap();
+            assert_eq!(
+                result,
+                (
+                    "3. d4",
+                    Ply::new(
+                        2,
+                        PlyMovement::Move {
+                            movement: Movement::new(
+                                Piece::new(PieceColour::Black, PieceType::Pawn),
+                                Position::new(4, 4)
+                            ),
+                            qualifier: None,
+                            check: None
+                        },
+                        None
+                    )
+                )
+            )
+        }
+
+        #[test]
+        fn parses_partial_move_with_comment() {
+            let result = parse_partial_move("2... e5 {A comment} 3. d4").unwrap();
+            assert_eq!(
+                result,
+                (
+                    "3. d4",
+                    Ply::new(
+                        2,
+                        PlyMovement::Move {
+                            movement: Movement::new(
+                                Piece::new(PieceColour::Black, PieceType::Pawn),
+                                Position::new(4, 4)
+                            ),
+                            qualifier: None,
+                            check: None
+                        },
+                        Some("A comment".to_string())
+                    )
+                )
+            )
+        }
+
+        #[test]
+        fn parses_partial_move_with_result() {
+            let result = parse_partial_move("2... e5 1-0").unwrap();
+            assert_eq!(
+                result,
+                (
+                    "",
+                    Ply::new(
+                        2,
+                        PlyMovement::Move {
+                            movement: Movement::new(
+                                Piece::new(PieceColour::Black, PieceType::Pawn),
+                                Position::new(4, 4)
+                            ),
+                            qualifier: None,
+                            check: None
+                        },
+                        None
+                    )
+                )
+            )
         }
     }
 
