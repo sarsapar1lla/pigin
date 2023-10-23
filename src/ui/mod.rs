@@ -12,9 +12,10 @@ use ratatui::prelude::*;
 mod app;
 mod command;
 mod error;
+mod piece;
 
 pub fn launch(games: Vec<Game>) -> Result<(), UiError> {
-    let mut terminal = setup_terminal()?;
+    let terminal = setup_terminal()?;
     let mut app = App::new(terminal, games);
     app.launch()?;
     Ok(())

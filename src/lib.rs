@@ -4,6 +4,6 @@ mod parse;
 mod ui;
 
 pub use engine::execute_moves;
+pub use model::Game;
 pub use parse::parse;
 pub use ui::launch;
-pub use model::Game;

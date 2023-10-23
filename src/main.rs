@@ -2,12 +2,19 @@
 
 use std::fs;
 
-use fenrs::{parse, execute_moves, Game, launch};
+use fenrs::{execute_moves, launch, parse, Game};
 
 fn main() {
-    let file = fs::read_to_string("./samples/example.pgn").unwrap();
-    let pgn = parse(&file).unwrap().remove(0);
-    let boards = execute_moves(pgn.fen().starting_board(), pgn.ply()).unwrap();
-    let games = vec![Game::new(pgn, boards)];
+    let file = fs::read_to_string("./resources/test/acceptance/Candidates2022.pgn").unwrap();
+    let pgns = parse(&file).unwrap();
+
+    let mut games: Vec<Game> = Vec::new();
+
+    for pgn in pgns {
+        let boards = execute_moves(pgn.fen().starting_board(), pgn.ply()).unwrap();
+        let game = Game::new(pgn, boards);
+        games.push(game);
+    }
+
     launch(games).unwrap();
 }

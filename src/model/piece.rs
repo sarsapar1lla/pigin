@@ -1,3 +1,17 @@
+const BLACK_PAWN: &str = "♙";
+const BLACK_KNIGHT: &str = "♘";
+const BLACK_BISHOP: &str = "♗";
+const BLACK_ROOK: &str = "♖";
+const BLACK_QUEEN: &str = "♕";
+const BLACK_KING: &str = "♔";
+
+const WHITE_PAWN: &str = "♟";
+const WHITE_KNIGHT: &str = "♞";
+const WHITE_BISHOP: &str = "♝";
+const WHITE_ROOK: &str = "♜";
+const WHITE_QUEEN: &str = "♛";
+const WHITE_KING: &str = "♚";
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceColour {
     Black,
@@ -36,24 +50,23 @@ impl Piece {
         &self.piece_type
     }
 
-    fn unicode(&self) -> String {
+    pub fn unicode(&self) -> &'static str {
         match (self.colour, self.piece_type) {
             // Black pieces
-            (PieceColour::Black, PieceType::Pawn) => "♟",
-            (PieceColour::Black, PieceType::Knight) => "♞",
-            (PieceColour::Black, PieceType::Bishop) => "♝",
-            (PieceColour::Black, PieceType::Rook) => "♜",
-            (PieceColour::Black, PieceType::Queen) => "♛",
-            (PieceColour::Black, PieceType::King) => "♚",
+            (PieceColour::Black, PieceType::Pawn) => BLACK_PAWN,
+            (PieceColour::Black, PieceType::Knight) => BLACK_KNIGHT,
+            (PieceColour::Black, PieceType::Bishop) => BLACK_BISHOP,
+            (PieceColour::Black, PieceType::Rook) => BLACK_ROOK,
+            (PieceColour::Black, PieceType::Queen) => BLACK_QUEEN,
+            (PieceColour::Black, PieceType::King) => BLACK_KING,
             // White pieces
-            (PieceColour::White, PieceType::Pawn) => "♙",
-            (PieceColour::White, PieceType::Knight) => "♘",
-            (PieceColour::White, PieceType::Bishop) => "♗",
-            (PieceColour::White, PieceType::Rook) => "♖",
-            (PieceColour::White, PieceType::Queen) => "♕",
-            (PieceColour::White, PieceType::King) => "♔",
+            (PieceColour::White, PieceType::Pawn) => WHITE_PAWN,
+            (PieceColour::White, PieceType::Knight) => WHITE_KNIGHT,
+            (PieceColour::White, PieceType::Bishop) => WHITE_BISHOP,
+            (PieceColour::White, PieceType::Rook) => WHITE_ROOK,
+            (PieceColour::White, PieceType::Queen) => WHITE_QUEEN,
+            (PieceColour::White, PieceType::King) => WHITE_KING,
         }
-        .to_string()
     }
 }
 

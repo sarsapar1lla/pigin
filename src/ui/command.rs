@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
 use super::error::UiError;
 
@@ -21,12 +19,9 @@ pub enum Command {
 }
 
 pub fn read() -> Result<Option<Command>, UiError> {
-    let is_event = event::poll(Duration::from_millis(10))
-        .map_err(|e| UiError::new(format!("Failed to poll for event: {e}")))?;
-    if is_event {
-        let event =
-            event::read().map_err(|e| UiError::new(format!("Failed to read event: {e}")))?;
-        if let Event::Key(key) = event {
+    let event = event::read().map_err(|e| UiError::new(format!("Failed to read event: {e}")))?;
+    if let Event::Key(key) = event {
+        if key.kind == KeyEventKind::Press {
             match key.code {
                 KeyCode::Char(PREVIOUS_PLY_KEY) => Ok(Some(Command::PlyBackwards)),
                 KeyCode::Char(NEXT_PLY_KEY) => Ok(Some(Command::PlyForwards)),
