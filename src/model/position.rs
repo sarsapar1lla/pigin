@@ -1,6 +1,9 @@
 pub const MIN_POSITION: i8 = 0;
 pub const MAX_POSITION: i8 = 7;
 
+pub const ROWS: &str = "12345678";
+pub const COLUMNS: &str = "abcdefgh";
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct InvalidPositionError(String);
 

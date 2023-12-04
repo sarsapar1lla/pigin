@@ -1,23 +1,21 @@
-use std::borrow::Cow;
 use std::io::Stdout;
+use std::ops::Index;
 
-use ratatui::style::{Modifier, Style};
+use ratatui::layout::{Layout, Constraint, Rect};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::{prelude::CrosstermBackend, Frame, Terminal};
 
-use crate::model::{Board, Game, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION};
+use crate::model::{Board, Game, PieceColour, Position, MAX_POSITION, Ply};
 
 use super::{command::Command, error::UiError};
 
 use super::command;
-use super::piece::{Pawn, Rook};
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
 use ratatui::widgets::*;
-
-use ratatui::widgets::canvas::{Canvas, Rectangle, Shape};
 
 pub struct App {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -122,94 +120,93 @@ fn render(
     perspective: PieceColour,
     game: &Game,
 ) {
-    let white_player = game.pgn().tags().get("White").unwrap();
-    let greeting = Paragraph::new(format!("Current game: {current_game}, current ply: {current_ply}, white player: {white_player}, perspective: {perspective:?}"));
-    frame.render_widget(greeting, frame.size());
+    let regions = Layout::default()
+        .direction(ratatui::layout::Direction::Horizontal)
+        .constraints(vec![
+            Constraint::Percentage(50),
+            Constraint::Percentage(50)
+        ])
+        .margin(frame.size().height / 5)
+        .split(frame.size());
+
+    render_ply(frame, game.pgn().ply(), current_ply, regions[0]);
 
     let board = &game.boards()[current_ply];
-    render_board(frame, board, perspective);
+    render_board(frame, board, perspective, regions[1]);
+}
+
+fn render_ply(
+    frame: &mut Frame<CrosstermBackend<Stdout>>,
+    ply: &[Ply],
+    current_ply: usize,
+    area: Rect
+) {
+    let spans: Vec<Span> = ply.iter().enumerate()
+        .map(|(idx, p)| if idx == current_ply { highlighted_ply(p) } else { standard_ply(p) })
+        .collect();
+
+    let paragraph = Paragraph::new(vec![Line::from(spans)])
+        .wrap(Wrap { trim: true })
+        .block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(paragraph, area);
+}
+
+fn standard_ply(ply: &Ply) -> Span {
+    Span::styled(format!("{ply}"), Style::default().fg(Color::White))
+}
+
+fn highlighted_ply(ply: &Ply) -> Span {
+    Span::styled(format!("{ply}"), Style::default().fg(Color::Yellow))
 }
 
 fn render_board(
     frame: &mut Frame<CrosstermBackend<Stdout>>,
     board: &Board,
     perspective: PieceColour,
+    area: Rect
 ) {
-    let board_canvas = Canvas::default()
-        .block(Block::default().borders(Borders::ALL))
-        .x_bounds([-5.0, 85.0])
-        .y_bounds([-5.0, 85.0])
-        .paint(|ctx| {
-            for i in 0..=MAX_POSITION {
-                for j in 0..=MAX_POSITION {
-                    let position = Position::new(i, j);
+    let positions = |i: i8| {
+        let row = match perspective {
+            PieceColour::White => i,
+            PieceColour::Black => MAX_POSITION - i,
+        };
 
-                    // if i == MIN_POSITION {
-                    //     ctx.print(
-                    //         (j as f64 * 10.0) + 5.0,
-                    //         (i as f64 * 10.0) - 5.0,
-                    //         Line {
-                    //             spans: vec![Span {
-                    //                 content: Cow::Borrowed("a"),
-                    //                 style: Style::default().add_modifier(Modifier::ITALIC),
-                    //             }],
-                    //             alignment: Some(ratatui::prelude::Alignment::Center),
-                    //         },
-                    //     )
-                    // }
+        (0..MAX_POSITION).map(move |column| Position::new(row, column))
+    };
 
-                    if let Some(piece) = board.occupant(position) {
-                        let x = match perspective {
-                            PieceColour::White => j,
-                            PieceColour::Black => j
-                        };
-                        let y = match perspective {
-                            PieceColour::White => i,
-                            PieceColour::Black => MAX_POSITION - i
-                        };
-                        let colour = match piece.colour() {
-                            PieceColour::White => ratatui::style::Color::White,
-                            PieceColour::Black => ratatui::style::Color::DarkGray,
-                        };
-                        match piece.piece_type() {
-                            PieceType::Pawn => {
-                                ctx.draw(&Pawn {
-                                    x: (x as f64 * 10.0) + 2.0,
-                                    y: (y as f64 * 10.0) + 2.0,
-                                    width: 6.0,
-                                    colour,
-                                });
-                            }
-                            PieceType::Rook => {
-                                ctx.draw(&Rook {
-                                    x: (x as f64 * 10.0) + 2.0,
-                                    y: (y as f64 * 10.0) + 2.0,
-                                    width: 6.0,
-                                    colour,
-                                });
-                            }
-                            _ => {
-                                ctx.draw(&Pawn {
-                                    x: (x as f64 * 10.0) + 2.0,
-                                    y: (y as f64 * 10.0) + 2.0,
-                                    width: 6.0,
-                                    colour,
-                                });
-                            }
-                        };
-                    }
+    let text: Vec<Line> = (0..=MAX_POSITION)
+        .map(|i| positions(i))
+        .map(|positions| {
+            Line::from(
+                positions
+                    .map(|position| square(position, board))
+                    .collect::<Vec<Span>>(),
+            )
+        })
+        .collect();
 
-                    let square = Rectangle {
-                        x: j as f64 * 10.0,
-                        y: i as f64 * 10.0,
-                        width: 10.0,
-                        height: 10.0,
-                        color: ratatui::style::Color::White,
-                    };
-                    ctx.draw(&square);
-                }
-            }
-        });
+    let paragraph = Paragraph::new(text)
+        .block(Block::default().borders(Borders::ALL));
+    frame.render_widget(paragraph, area);
+}
 
-    frame.render_widget(board_canvas, frame.size());
+fn square(position: Position, board: &Board) -> Span {
+    let maybe_piece = board.occupant(position);
+    let text = maybe_piece
+        .map(|piece| format!(" {piece} "))
+        .unwrap_or("   ".to_string());
+
+    let colour = maybe_piece
+        .map(|piece| match piece.colour() {
+            PieceColour::White => Color::White,
+            PieceColour::Black => Color::DarkGray,
+        })
+        .unwrap_or(Color::Black);
+
+    if (position.row() + position.col()) % 2 == 0 {
+        Span::styled(text, Style::default().bg(Color::LightBlue).fg(colour))
+    } else {
+        Span::styled(text, Style::default().bg(Color::LightRed).fg(colour))
+    }
 }

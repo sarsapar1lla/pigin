@@ -3,7 +3,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{line_ending, one_of, space1},
     combinator::{map, map_res, opt},
-    sequence::{pair, separated_pair, terminated, tuple},
+    sequence::{pair, terminated, tuple},
     IResult,
 };
 
@@ -21,7 +21,7 @@ pub fn parse(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
 }
 
 fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
-    let (remainder, (maybe_piece_type, (maybe_move_qualifier, position), maybe_promotion, check)) =
+    let (remainder, (maybe_piece_type, (maybe_move_qualifier, is_capture, position), maybe_promotion, check)) =
         terminated(
             tuple((
                 opt(piece_type),
@@ -43,6 +43,7 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
                 movement,
                 qualifier: maybe_move_qualifier,
                 check,
+                capture: is_capture
             },
         )),
         Some(promotion) => Ok((
@@ -52,16 +53,20 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
                 promotes_to: promotion,
                 qualifier: maybe_move_qualifier,
                 check,
+                capture: is_capture
             },
         )),
     }
 }
 
-fn position_with_qualifier(input: &str) -> IResult<&str, (Option<MoveQualifier>, Position)> {
+fn position_with_qualifier(input: &str) -> IResult<&str, (Option<MoveQualifier>, bool, Position)> {
     alt((
-        separated_pair(opt(move_qualifier), opt(tag("x")), position::parse),
+        map(
+            tuple((opt(move_qualifier), opt(tag("x")), position::parse)),
+            |captures| (captures.0, captures.1.is_some(), captures.2)
+        ),
         map(position::parse, |p: Position| {
-            (None as Option<MoveQualifier>, p)
+            (None as Option<MoveQualifier>, false, p)
         }),
     ))(input)
 }
@@ -343,6 +348,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -362,6 +368,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Col(0)),
                         check: None,
+                        capture: true,
                     }
                 )
             )
@@ -381,6 +388,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Position(Position::new(4, 0))),
                         check: None,
+                        capture: true,
                     }
                 )
             )
@@ -401,6 +409,7 @@ mod tests {
                         promotes_to: PieceType::Rook,
                         qualifier: None,
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -421,6 +430,7 @@ mod tests {
                         promotes_to: PieceType::Rook,
                         qualifier: Some(MoveQualifier::Col(0)),
                         check: None,
+                        capture: true,
                     }
                 )
             )
@@ -440,6 +450,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -459,6 +470,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -478,6 +490,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Row(5)),
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -497,6 +510,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Position(Position::new(5, 1))),
                         check: None,
+                        capture: false,
                     }
                 )
             )
@@ -515,7 +529,8 @@ mod tests {
                             Position::new(4, 2),
                         ),
                         qualifier: None,
-                        check: None
+                        check: None,
+                        capture: true,
                     }
                 )
             )
@@ -535,6 +550,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: Some(Check::Check),
+                        capture: false,
                     }
                 )
             )
@@ -554,6 +570,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: Some(Check::Checkmate),
+                        capture: false,
                     }
                 )
             )
@@ -572,7 +589,7 @@ mod tests {
         #[test]
         fn parses_position() {
             let result = position_with_qualifier("e4 e5").unwrap();
-            assert_eq!(result, (" e5", (None, Position::new(3, 4))))
+            assert_eq!(result, (" e5", (None, false, Position::new(3, 4))))
         }
 
         #[test]
@@ -580,7 +597,7 @@ mod tests {
             let result = position_with_qualifier("dxe4 e5").unwrap();
             assert_eq!(
                 result,
-                (" e5", (Some(MoveQualifier::Col(3)), Position::new(3, 4)))
+                (" e5", (Some(MoveQualifier::Col(3)), true, Position::new(3, 4)))
             )
         }
 
@@ -593,6 +610,7 @@ mod tests {
                     " e5",
                     (
                         Some(MoveQualifier::Position(Position::try_from(2, 3).unwrap())),
+                        true,
                         Position::new(3, 4)
                     )
                 )
