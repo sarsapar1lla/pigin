@@ -21,16 +21,18 @@ pub fn parse(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
 }
 
 fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
-    let (remainder, (maybe_piece_type, (maybe_move_qualifier, is_capture, position), maybe_promotion, check)) =
-        terminated(
-            tuple((
-                opt(piece_type),
-                position_with_qualifier,
-                opt(promotion),
-                opt(check),
-            )),
-            ply_terminator,
-        )(input)?;
+    let (
+        remainder,
+        (maybe_piece_type, (maybe_move_qualifier, is_capture, position), maybe_promotion, check),
+    ) = terminated(
+        tuple((
+            opt(piece_type),
+            position_with_qualifier,
+            opt(promotion),
+            opt(check),
+        )),
+        ply_terminator,
+    )(input)?;
 
     let piece = Piece::new(colour, maybe_piece_type.unwrap_or(PieceType::Pawn));
 
@@ -43,7 +45,7 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
                 movement,
                 qualifier: maybe_move_qualifier,
                 check,
-                capture: is_capture
+                capture: is_capture,
             },
         )),
         Some(promotion) => Ok((
@@ -53,7 +55,7 @@ fn piece_move(input: &str, colour: PieceColour) -> IResult<&str, PlyMovement> {
                 promotes_to: promotion,
                 qualifier: maybe_move_qualifier,
                 check,
-                capture: is_capture
+                capture: is_capture,
             },
         )),
     }
@@ -63,7 +65,7 @@ fn position_with_qualifier(input: &str) -> IResult<&str, (Option<MoveQualifier>,
     alt((
         map(
             tuple((opt(move_qualifier), opt(tag("x")), position::parse)),
-            |captures| (captures.0, captures.1.is_some(), captures.2)
+            |captures| (captures.0, captures.1.is_some(), captures.2),
         ),
         map(position::parse, |p: Position| {
             (None as Option<MoveQualifier>, false, p)
@@ -597,7 +599,10 @@ mod tests {
             let result = position_with_qualifier("dxe4 e5").unwrap();
             assert_eq!(
                 result,
-                (" e5", (Some(MoveQualifier::Col(3)), true, Position::new(3, 4)))
+                (
+                    " e5",
+                    (Some(MoveQualifier::Col(3)), true, Position::new(3, 4))
+                )
             )
         }
 

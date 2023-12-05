@@ -63,7 +63,7 @@ mod tests {
     }
 
     fn expected() -> Pgn {
-        let mut tags: Tags = HashMap::new();
+        let mut tags: HashMap<String, String> = HashMap::new();
         tags.insert("White".to_string(), "Player, One".to_string());
         tags.insert("Black".to_string(), "Player, Two".to_string());
 
@@ -96,7 +96,12 @@ mod tests {
             ),
         ];
 
-        Pgn::new(tags, expected_fen(), GameResult::Ongoing, ply_list)
+        Pgn::new(
+            Tags::new(tags),
+            expected_fen(),
+            GameResult::Ongoing,
+            ply_list,
+        )
     }
 
     fn expected_fen() -> Fen {

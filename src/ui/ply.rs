@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::model::{PieceColour, Piece, MoveQualifier, Check, Movement, PieceType, PlyMovement, Ply, ROWS, COLUMNS, Position};
+use crate::model::{
+    Check, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply, PlyMovement, Position,
+    COLUMNS, ROWS,
+};
 
 const BLACK_PAWN: &str = "P";
 const BLACK_KNIGHT: &str = "N";
@@ -18,31 +21,39 @@ const WHITE_KING: &str = "K";
 
 impl Display for Check {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Check::Check => "+".to_string(),
-            Check::Checkmate => "#".to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Check::Check => "+".to_string(),
+                Check::Checkmate => "#".to_string(),
+            }
+        )
     }
 }
 
 impl Display for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match (self.colour(), self.piece_type()) {
-            // Black pieces
-            (PieceColour::Black, PieceType::Pawn) => BLACK_PAWN,
-            (PieceColour::Black, PieceType::Knight) => BLACK_KNIGHT,
-            (PieceColour::Black, PieceType::Bishop) => BLACK_BISHOP,
-            (PieceColour::Black, PieceType::Rook) => BLACK_ROOK,
-            (PieceColour::Black, PieceType::Queen) => BLACK_QUEEN,
-            (PieceColour::Black, PieceType::King) => BLACK_KING,
-            // White pieces
-            (PieceColour::White, PieceType::Pawn) => WHITE_PAWN,
-            (PieceColour::White, PieceType::Knight) => WHITE_KNIGHT,
-            (PieceColour::White, PieceType::Bishop) => WHITE_BISHOP,
-            (PieceColour::White, PieceType::Rook) => WHITE_ROOK,
-            (PieceColour::White, PieceType::Queen) => WHITE_QUEEN,
-            (PieceColour::White, PieceType::King) => WHITE_KING,
-        })
+        write!(
+            f,
+            "{}",
+            match (self.colour(), self.piece_type()) {
+                // Black pieces
+                (PieceColour::Black, PieceType::Pawn) => BLACK_PAWN,
+                (PieceColour::Black, PieceType::Knight) => BLACK_KNIGHT,
+                (PieceColour::Black, PieceType::Bishop) => BLACK_BISHOP,
+                (PieceColour::Black, PieceType::Rook) => BLACK_ROOK,
+                (PieceColour::Black, PieceType::Queen) => BLACK_QUEEN,
+                (PieceColour::Black, PieceType::King) => BLACK_KING,
+                // White pieces
+                (PieceColour::White, PieceType::Pawn) => WHITE_PAWN,
+                (PieceColour::White, PieceType::Knight) => WHITE_KNIGHT,
+                (PieceColour::White, PieceType::Bishop) => WHITE_BISHOP,
+                (PieceColour::White, PieceType::Rook) => WHITE_ROOK,
+                (PieceColour::White, PieceType::Queen) => WHITE_QUEEN,
+                (PieceColour::White, PieceType::King) => WHITE_KING,
+            }
+        )
     }
 }
 
@@ -57,11 +68,15 @@ impl Display for Position {
 
 impl Display for MoveQualifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            MoveQualifier::Col(col) => COLUMNS.chars().nth(*col as usize).unwrap().to_string(),
-            MoveQualifier::Row(row) => ROWS.chars().nth(*row as usize).unwrap().to_string(),
-            MoveQualifier::Position(position) => position.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                MoveQualifier::Col(col) => COLUMNS.chars().nth(*col as usize).unwrap().to_string(),
+                MoveQualifier::Row(row) => ROWS.chars().nth(*row as usize).unwrap().to_string(),
+                MoveQualifier::Position(position) => position.to_string(),
+            }
+        )
     }
 }
 
@@ -103,7 +118,7 @@ impl Display for Ply {
             ),
         };
 
-        write!(f, "{ply}")
+        write!(f, "{ply} ")
     }
 }
 
@@ -115,7 +130,7 @@ fn format_castle(
 ) -> String {
     let move_number = move_number_string(colour, move_number);
     let check_string = check.map_or(String::new(), ToString::to_string);
-    format!("{move_number} {castle_string}{check_string}")
+    format!("{move_number}{castle_string}{check_string}")
 }
 
 fn format_move(
@@ -135,8 +150,8 @@ fn format_move(
         Some(&piece_type) => Piece::new(*movement.piece().colour(), piece_type).to_string(),
     };
     format!(
-        "{move_number} {}{qualifier_string}{capture_string}{}{promotion_string}{check_string}",
-        movement.piece(),
+        "{move_number}{}{qualifier_string}{capture_string}{}{promotion_string}{check_string}",
+        format_piece_for_ply(movement.piece()),
         movement.position(),
     )
 }
@@ -145,5 +160,24 @@ fn move_number_string(colour: PieceColour, move_number: i16) -> String {
     match colour {
         PieceColour::White => format!("{move_number}."),
         PieceColour::Black => String::new(),
+    }
+}
+
+fn format_piece_for_ply(piece: Piece) -> &'static str {
+    match (piece.colour(), piece.piece_type()) {
+        // Black pieces
+        (PieceColour::Black, PieceType::Pawn) => "",
+        (PieceColour::Black, PieceType::Knight) => BLACK_KNIGHT,
+        (PieceColour::Black, PieceType::Bishop) => BLACK_BISHOP,
+        (PieceColour::Black, PieceType::Rook) => BLACK_ROOK,
+        (PieceColour::Black, PieceType::Queen) => BLACK_QUEEN,
+        (PieceColour::Black, PieceType::King) => BLACK_KING,
+        // White pieces
+        (PieceColour::White, PieceType::Pawn) => "",
+        (PieceColour::White, PieceType::Knight) => WHITE_KNIGHT,
+        (PieceColour::White, PieceType::Bishop) => WHITE_BISHOP,
+        (PieceColour::White, PieceType::Rook) => WHITE_ROOK,
+        (PieceColour::White, PieceType::Queen) => WHITE_QUEEN,
+        (PieceColour::White, PieceType::King) => WHITE_KING,
     }
 }

@@ -2,25 +2,12 @@ use std::collections::HashMap;
 
 use super::{board::Board, PieceColour, Ply};
 
-pub type Tags = HashMap<String, String>;
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GameResult {
     BlackWin,
     WhiteWin,
     Draw,
     Ongoing,
-}
-
-impl ToString for GameResult {
-    fn to_string(&self) -> String {
-        match self {
-            Self::BlackWin => "0-1".to_string(),
-            Self::WhiteWin => "1-0".to_string(),
-            Self::Draw => "1/2-1/2".to_string(),
-            Self::Ongoing => "*".to_string(),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -49,6 +36,33 @@ impl Fen {
 
     pub fn move_number(&self) -> u8 {
         self.move_number
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Tags(HashMap<String, String>);
+
+impl Tags {
+    pub fn new(tags: HashMap<String, String>) -> Self {
+        Self(tags)
+    }
+
+    pub fn get(&self, key: &str) -> Option<&String> {
+        self.0.get(key)
+    }
+
+    pub fn get_or_default(&self, key: &str, default: &str) -> String {
+        self.get(key)
+            .map(ToString::to_string)
+            .unwrap_or_else(|| default.to_string())
+    }
+
+    pub fn remove(&mut self, key: &str) -> Option<String> {
+        self.0.remove(key)
+    }
+
+    pub fn inner(&self) -> &HashMap<String, String> {
+        &self.0
     }
 }
 
