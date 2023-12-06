@@ -1,8 +1,16 @@
 use std::fmt::Display;
 
+use ratatui::{
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph, Wrap},
+    Frame,
+};
+
 use crate::model::{
-    Check, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply, PlyMovement, Position,
-    COLUMNS, ROWS,
+    Check, GameResult, MoveQualifier, Movement, Piece, PieceColour, PieceType, Ply, PlyMovement,
+    Position, COLUMNS, ROWS,
 };
 
 const BLACK_PAWN: &str = "P";
@@ -59,8 +67,14 @@ impl Display for Piece {
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let row = ROWS.chars().nth(self.row() as usize).unwrap();
-        let col = COLUMNS.chars().nth(self.col() as usize).unwrap();
+        let row = usize::try_from(self.row())
+            .ok()
+            .and_then(|row| ROWS.chars().nth(row))
+            .ok_or(std::fmt::Error)?;
+        let col = usize::try_from(self.col())
+            .ok()
+            .and_then(|col| COLUMNS.chars().nth(col))
+            .ok_or(std::fmt::Error)?;
 
         write!(f, "{col}{row}")
     }
@@ -68,15 +82,18 @@ impl Display for Position {
 
 impl Display for MoveQualifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                MoveQualifier::Col(col) => COLUMNS.chars().nth(*col as usize).unwrap().to_string(),
-                MoveQualifier::Row(row) => ROWS.chars().nth(*row as usize).unwrap().to_string(),
-                MoveQualifier::Position(position) => position.to_string(),
+        let text = match self {
+            MoveQualifier::Col(col) => {
+                let col = usize::try_from(*col).map_err(|_| std::fmt::Error)?;
+                COLUMNS.chars().nth(col).ok_or(std::fmt::Error)?.to_string()
             }
-        )
+            MoveQualifier::Row(row) => {
+                let row = usize::try_from(*row).map_err(|_| std::fmt::Error)?;
+                ROWS.chars().nth(row).ok_or(std::fmt::Error)?.to_string()
+            }
+            MoveQualifier::Position(position) => position.to_string(),
+        };
+        write!(f, "{text}")
     }
 }
 
@@ -122,6 +139,66 @@ impl Display for Ply {
     }
 }
 
+impl std::fmt::Display for GameResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                GameResult::WhiteWin => "1-0",
+                GameResult::BlackWin => "0-1",
+                GameResult::Draw => "½-½",
+                GameResult::Ongoing => "*",
+            }
+        )
+    }
+}
+
+pub fn render(
+    frame: &mut Frame,
+    ply: &[Ply],
+    current_ply: usize,
+    game_result: GameResult,
+    area: Rect,
+) {
+    let mut spans: Vec<Span> = ply
+        .iter()
+        .enumerate()
+        .map(|(idx, p)| {
+            if idx == current_ply {
+                highlighted_ply(p)
+            } else {
+                standard_ply(p)
+            }
+        })
+        .collect();
+
+    spans.push(standard_game_result(&game_result));
+
+    let paragraph = Paragraph::new(vec![Line::from(spans)])
+        .wrap(Wrap { trim: true })
+        .block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(paragraph, area);
+}
+
+fn standard_ply(ply: &Ply) -> Span {
+    Span::styled(format!("{ply}"), Style::default().fg(Color::DarkGray))
+}
+
+fn highlighted_ply(ply: &Ply) -> Span {
+    Span::styled(format!("{ply}"), Style::default().fg(Color::Yellow))
+}
+
+fn standard_game_result(game_result: &GameResult) -> Span {
+    Span::styled(
+        format!("{game_result}"),
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(Color::LightGreen),
+    )
+}
+
 fn format_castle(
     move_number: i16,
     check: Option<&Check>,
@@ -165,15 +242,14 @@ fn move_number_string(colour: PieceColour, move_number: i16) -> String {
 
 fn format_piece_for_ply(piece: Piece) -> &'static str {
     match (piece.colour(), piece.piece_type()) {
+        (_, PieceType::Pawn) => "",
         // Black pieces
-        (PieceColour::Black, PieceType::Pawn) => "",
         (PieceColour::Black, PieceType::Knight) => BLACK_KNIGHT,
         (PieceColour::Black, PieceType::Bishop) => BLACK_BISHOP,
         (PieceColour::Black, PieceType::Rook) => BLACK_ROOK,
         (PieceColour::Black, PieceType::Queen) => BLACK_QUEEN,
         (PieceColour::Black, PieceType::King) => BLACK_KING,
         // White pieces
-        (PieceColour::White, PieceType::Pawn) => "",
         (PieceColour::White, PieceType::Knight) => WHITE_KNIGHT,
         (PieceColour::White, PieceType::Bishop) => WHITE_BISHOP,
         (PieceColour::White, PieceType::Rook) => WHITE_ROOK,

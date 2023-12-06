@@ -53,8 +53,7 @@ impl Tags {
 
     pub fn get_or_default(&self, key: &str, default: &str) -> String {
         self.get(key)
-            .map(ToString::to_string)
-            .unwrap_or_else(|| default.to_string())
+            .map_or_else(|| default.to_string(), ToString::to_string)
     }
 
     pub fn remove(&mut self, key: &str) -> Option<String> {

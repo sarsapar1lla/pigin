@@ -10,9 +10,12 @@ use crossterm::{
 use ratatui::prelude::*;
 
 mod app;
+mod board;
 mod command;
 mod error;
+mod games;
 mod ply;
+mod tags;
 
 pub fn launch(games: Vec<Game>) -> Result<(), UiError> {
     let terminal = setup_terminal()?;
