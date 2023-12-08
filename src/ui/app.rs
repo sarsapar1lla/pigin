@@ -15,7 +15,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
-use ratatui::widgets::{Block, Borders, ScrollbarState};
+use ratatui::widgets::{Block, Borders, ListState};
 
 pub struct App {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -24,7 +24,7 @@ pub struct App {
     current_ply: Vec<usize>,
     max_ply: Vec<usize>,
     perspective: PieceColour,
-    scroll_state: ScrollbarState,
+    list_state: ListState,
     show_metadata: bool,
 }
 
@@ -39,7 +39,7 @@ impl App {
             current_ply,
             max_ply,
             perspective: PieceColour::White,
-            scroll_state: ScrollbarState::default(),
+            list_state: ListState::default().with_selected(Some(0)),
             show_metadata: false,
         }
     }
@@ -79,13 +79,13 @@ impl App {
                     Command::GameForwards => {
                         if self.current_game < self.games.len() - 1 {
                             self.current_game += 1;
-                            self.scroll_state.next();
+                            self.list_state.select(Some(self.current_game));
                         }
                     }
                     Command::GameBackwards => {
                         if self.current_game > 0 {
                             self.current_game -= 1;
-                            self.scroll_state.prev();
+                            self.list_state.select(Some(self.current_game));
                         }
                     }
                     Command::FlipPerspective => match self.perspective {
@@ -97,11 +97,7 @@ impl App {
                         }
                     },
                     Command::ToggleMetadata => {
-                        self.show_metadata = if self.show_metadata {
-                            false
-                        } else {
-                            true
-                        };
+                        self.show_metadata = !self.show_metadata;
                     }
                     Command::Quit => break,
                 }
@@ -117,7 +113,7 @@ impl App {
                         current_ply,
                         self.perspective,
                         &self.games,
-                        &mut self.scroll_state,
+                        &mut self.list_state,
                         self.show_metadata,
                     );
                 })
@@ -133,7 +129,7 @@ fn render(
     current_ply: usize,
     perspective: PieceColour,
     games: &[Game],
-    scrollbar_state: &mut ScrollbarState,
+    list_state: &mut ListState,
     show_metadata: bool,
 ) {
     let regions = Layout::default()
@@ -166,10 +162,7 @@ fn render(
     let current_board = &games[current_game].boards()[current_ply];
     board::render(frame, current_board, perspective, top_region[1]);
 
-    match games::render(frame, games, current_game, bottom_region, scrollbar_state, show_metadata) {
-        Ok(()) => {}
-        Err(_) => games::render_error_message(frame, bottom_region),
-    };
+    games::render(frame, games, bottom_region, list_state, show_metadata);
 
     if show_metadata {
         tags::render(frame, pgn.tags(), pgn.result(), bottom_region);

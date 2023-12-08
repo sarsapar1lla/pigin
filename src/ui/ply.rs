@@ -4,7 +4,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Padding, Paragraph, Wrap},
     Frame,
 };
 
@@ -177,7 +177,11 @@ pub fn render(
 
     let paragraph = Paragraph::new(vec![Line::from(spans)])
         .wrap(Wrap { trim: true })
-        .block(Block::default().borders(Borders::ALL));
+        .block(
+            Block::default()
+                .borders(Borders::RIGHT)
+                .padding(Padding::horizontal(1)),
+        );
 
     frame.render_widget(paragraph, area);
 }
@@ -224,7 +228,7 @@ fn format_move(
     let check_string = check.map_or(String::new(), ToString::to_string);
     let promotion_string = match promotes_to {
         None => String::new(),
-        Some(&piece_type) => Piece::new(*movement.piece().colour(), piece_type).to_string(),
+        Some(&piece_type) => format!("={}", Piece::new(*movement.piece().colour(), piece_type)),
     };
     format!(
         "{move_number}{}{qualifier_string}{capture_string}{}{promotion_string}{check_string}",

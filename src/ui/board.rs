@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph},
+    widgets::{Block, Padding, Paragraph},
     Frame,
 };
 
@@ -29,11 +29,9 @@ pub fn render(frame: &mut Frame, board: &Board, perspective: PieceColour, area: 
         })
         .collect();
 
-    let paragraph = Paragraph::new(text).alignment(Alignment::Center).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .padding(Padding::vertical(1)),
-    );
+    let paragraph = Paragraph::new(text)
+        .alignment(Alignment::Center)
+        .block(Block::default().padding(Padding::vertical(1)));
 
     frame.render_widget(paragraph, area);
 }

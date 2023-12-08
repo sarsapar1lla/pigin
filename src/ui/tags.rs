@@ -1,7 +1,7 @@
 use ratatui::{
-    layout::{Constraint, Rect, Layout, Direction},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table, Clear},
+    widgets::{Block, Borders, Cell, Clear, Row, Table},
     Frame,
 };
 
@@ -38,7 +38,7 @@ pub fn render(frame: &mut Frame, tags: &Tags, result: GameResult, area: Rect) {
         .block(Block::default().borders(Borders::ALL))
         .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
 
-    let area = centered_rect(70, 80, area);
+    let area = centered_rect(70, 90, area);
 
     frame.render_widget(Clear, area);
     frame.render_widget(table, area);
