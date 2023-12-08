@@ -25,6 +25,7 @@ pub struct App {
     max_ply: Vec<usize>,
     perspective: PieceColour,
     scroll_state: ScrollbarState,
+    show_metadata: bool,
 }
 
 impl App {
@@ -39,6 +40,7 @@ impl App {
             max_ply,
             perspective: PieceColour::White,
             scroll_state: ScrollbarState::default(),
+            show_metadata: false,
         }
     }
 
@@ -94,6 +96,13 @@ impl App {
                             self.perspective = PieceColour::White;
                         }
                     },
+                    Command::ToggleMetadata => {
+                        self.show_metadata = if self.show_metadata {
+                            false
+                        } else {
+                            true
+                        };
+                    }
                     Command::Quit => break,
                 }
             }
@@ -109,6 +118,7 @@ impl App {
                         self.perspective,
                         &self.games,
                         &mut self.scroll_state,
+                        self.show_metadata,
                     );
                 })
                 .map_err(|e| UiError::new(format!("Failed to draw frame: {e}")))?;
@@ -124,6 +134,7 @@ fn render(
     perspective: PieceColour,
     games: &[Game],
     scrollbar_state: &mut ScrollbarState,
+    show_metadata: bool,
 ) {
     let regions = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -135,35 +146,34 @@ fn render(
         .split(frame.size());
 
     let ui_regions = Layout::default()
-        .direction(ratatui::layout::Direction::Horizontal)
-        .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
+        .direction(ratatui::layout::Direction::Vertical)
+        .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(regions[1]);
 
-    let left_region = Layout::default()
-        .direction(ratatui::layout::Direction::Vertical)
-        .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
+    let top_region = Layout::default()
+        .direction(ratatui::layout::Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(70), Constraint::Percentage(30)])
         .split(ui_regions[0]);
 
-    let right_region = Layout::default()
-        .direction(ratatui::layout::Direction::Vertical)
-        .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
-        .split(ui_regions[1]);
+    let bottom_region = ui_regions[1];
 
     title(frame, regions[0]);
 
     let pgn = games[current_game].pgn();
 
-    ply::render(frame, pgn.ply(), current_ply, pgn.result(), left_region[0]);
-
-    match games::render(frame, games, current_game, left_region[1], scrollbar_state) {
-        Ok(()) => {}
-        Err(_) => games::render_error_message(frame, left_region[1]),
-    };
+    ply::render(frame, pgn.ply(), current_ply, pgn.result(), top_region[0]);
 
     let current_board = &games[current_game].boards()[current_ply];
-    board::render(frame, current_board, perspective, right_region[0]);
+    board::render(frame, current_board, perspective, top_region[1]);
 
-    tags::render(frame, pgn.tags(), pgn.result(), right_region[1]);
+    match games::render(frame, games, current_game, bottom_region, scrollbar_state, show_metadata) {
+        Ok(()) => {}
+        Err(_) => games::render_error_message(frame, bottom_region),
+    };
+
+    if show_metadata {
+        tags::render(frame, pgn.tags(), pgn.result(), bottom_region);
+    }
 
     command::render(frame, regions[2]);
 }

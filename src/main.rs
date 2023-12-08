@@ -5,7 +5,7 @@ use std::fs;
 use fenrs::{execute_moves, launch, parse, Game};
 
 fn main() {
-    let file = fs::read_to_string("./resources/test/acceptance/Candidates2022.pgn").unwrap();
+    let file = fs::read_to_string("./resources/test/acceptance/astzhuop23.pgn").unwrap();
     let pgns = parse(&file).unwrap();
 
     let mut games: Vec<Game> = Vec::new();

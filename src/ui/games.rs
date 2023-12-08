@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Alignment, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
     Frame,
@@ -16,6 +16,7 @@ pub fn render(
     current_game: usize,
     area: Rect,
     scrollbar_state: &mut ScrollbarState,
+    dim: bool,
 ) -> Result<(), UiError> {
     let lines: Vec<Line> = games
         .iter()
@@ -36,6 +37,7 @@ pub fn render(
 
     let paragraph = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL))
+        .style(if dim { Style::default().dim() } else { Style::default() })
         .scroll((scroll_position, 0));
 
     let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight);

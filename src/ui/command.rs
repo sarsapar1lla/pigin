@@ -14,10 +14,12 @@ const NEXT_PLY_KEY: char = 'd';
 const PREVIOUS_GAME_KEY: char = 'w';
 const NEXT_GAME_KEY: char = 's';
 const FLIP_PERSPECTIVE_KEY: char = 'e';
+const METADATA_KEY: char = 'x';
 const QUIT_KEY: char = 'q';
 
 const NAVIGATE_LABEL: &str = " Navigate: w a s d ";
 const FLIP_LABEL: &str = " Flip: e ";
+const METADATA_LABEL: &str = " Toggle metadata: x ";
 const QUIT_LABEL: &str = " Quit: q ";
 
 pub enum Command {
@@ -26,6 +28,7 @@ pub enum Command {
     GameForwards,
     GameBackwards,
     FlipPerspective,
+    ToggleMetadata,
     Quit,
 }
 
@@ -39,6 +42,7 @@ pub fn read() -> Result<Option<Command>, UiError> {
                 KeyCode::Char(PREVIOUS_GAME_KEY) => Ok(Some(Command::GameBackwards)),
                 KeyCode::Char(NEXT_GAME_KEY) => Ok(Some(Command::GameForwards)),
                 KeyCode::Char(FLIP_PERSPECTIVE_KEY) => Ok(Some(Command::FlipPerspective)),
+                KeyCode::Char(METADATA_KEY) => Ok(Some(Command::ToggleMetadata)),
                 KeyCode::Char(QUIT_KEY) => Ok(Some(Command::Quit)),
                 _ => Ok(None),
             }
@@ -54,7 +58,8 @@ pub fn render(frame: &mut Frame, area: Rect) {
     let title: Vec<Span> = [
         command(NAVIGATE_LABEL, Color::LightGreen),
         command(FLIP_LABEL, Color::LightBlue),
-        command(QUIT_LABEL, Color::LightGreen),
+        command(METADATA_LABEL, Color::LightGreen),
+        command(QUIT_LABEL, Color::LightBlue),
     ]
     .concat();
 
