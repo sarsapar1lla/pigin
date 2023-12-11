@@ -1,10 +1,13 @@
 use std::fmt::Display;
 
 use ratatui::{
-    layout::Rect,
+    layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph, Wrap},
+    widgets::{
+        block::{self, Title},
+        Block, Borders, Padding, Paragraph, Wrap,
+    },
     Frame,
 };
 
@@ -26,6 +29,8 @@ const WHITE_BISHOP: &str = "B";
 const WHITE_ROOK: &str = "R";
 const WHITE_QUEEN: &str = "Q";
 const WHITE_KING: &str = "K";
+
+const AVERAGE_PLY_LENGTH: u16 = 8;
 
 impl Display for Check {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -175,10 +180,25 @@ pub fn render(
 
     spans.push(standard_game_result(&game_result));
 
-    let paragraph = Paragraph::new(vec![Line::from(spans)])
+    let spans_per_page: usize = (area.area() / AVERAGE_PLY_LENGTH).into();
+    let current_page = current_ply / spans_per_page;
+
+    let pages = (spans.len() / spans_per_page) + 1;
+    let page = spans
+        .chunks(spans_per_page)
+        .nth(current_page)
+        .unwrap()
+        .to_vec();
+
+    let title = Title::from(format!("Page {}/{}", current_page + 1, pages))
+        .position(block::Position::Bottom)
+        .alignment(Alignment::Right);
+
+    let paragraph = Paragraph::new(vec![Line::from(page)])
         .wrap(Wrap { trim: true })
         .block(
             Block::default()
+                .title(if pages > 1 { title } else { Title::default() })
                 .borders(Borders::RIGHT)
                 .padding(Padding::horizontal(1)),
         );
