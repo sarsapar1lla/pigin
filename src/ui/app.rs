@@ -173,8 +173,8 @@ fn render(
 
 fn title(frame: &mut Frame, area: Rect) {
     let title: Vec<Span> = [
-        Span::styled("PiGiN", Style::default().add_modifier(Modifier::ITALIC)),
-        Span::from(""),
+        Span::styled("pigin", Style::default().add_modifier(Modifier::ITALIC)),
+        Span::from(" "),
     ]
     .into_iter()
     .collect();

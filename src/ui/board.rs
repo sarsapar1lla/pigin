@@ -18,7 +18,7 @@ pub fn render(frame: &mut Frame, board: &Board, perspective: PieceColour, area: 
         (0..=MAX_POSITION).map(move |column| Position::new(row, column))
     };
 
-    let text: Vec<Line> = (0..=MAX_POSITION)
+    let board_text: Vec<Line> = (0..=MAX_POSITION)
         .map(positions)
         .map(|positions| {
             Line::from(
@@ -29,7 +29,7 @@ pub fn render(frame: &mut Frame, board: &Board, perspective: PieceColour, area: 
         })
         .collect();
 
-    let paragraph = Paragraph::new(text)
+    let paragraph = Paragraph::new(board_text)
         .alignment(Alignment::Center)
         .block(Block::default().padding(Padding::vertical(1)));
 

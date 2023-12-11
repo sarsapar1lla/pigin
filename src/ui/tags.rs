@@ -19,7 +19,7 @@ pub fn render(frame: &mut Frame, tags: &Tags, result: GameResult, area: Rect) {
         )
         .height(1);
 
-    let mut rows: Vec<Row> = ["Event", "Round", "Site", "WhiteElo", "BlackElo"]
+    let mut rows: Vec<Row> = ["Event", "Round", "Date", "Site", "WhiteElo", "BlackElo"]
         .iter()
         .filter_map(|&tag| {
             tags.get(tag)
@@ -38,7 +38,7 @@ pub fn render(frame: &mut Frame, tags: &Tags, result: GameResult, area: Rect) {
         .block(Block::default().borders(Borders::ALL))
         .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
 
-    let area = centered_rect(70, 90, area);
+    let area = centered_rect(70, 100, area);
 
     frame.render_widget(Clear, area);
     frame.render_widget(table, area);
