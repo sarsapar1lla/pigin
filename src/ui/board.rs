@@ -29,9 +29,11 @@ pub fn render(frame: &mut Frame, board: &Board, perspective: PieceColour, area: 
         })
         .collect();
 
+    let vertical_padding = (area.height - 8) / 2;
+
     let paragraph = Paragraph::new(board_text)
         .alignment(Alignment::Center)
-        .block(Block::default().padding(Padding::vertical(1)));
+        .block(Block::default().padding(Padding::vertical(vertical_padding)));
 
     frame.render_widget(paragraph, area);
 }
