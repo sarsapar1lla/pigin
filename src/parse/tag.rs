@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nom::character::complete::char;
 use nom::{
     bytes::complete::take_until,
@@ -11,12 +13,12 @@ use crate::model::Tags;
 
 pub fn parse(input: &str) -> IResult<&str, Tags> {
     let (remaining, (tags, _)) = many_till(parse_tag, line_ending)(input)?;
-    let tags: Tags = tags
+    let tags: HashMap<String, String> = tags
         .into_iter()
         .map(|pair: (&str, &str)| (pair.0.to_string(), pair.1.to_string()))
         .collect();
 
-    Ok((remaining, tags))
+    Ok((remaining, Tags::new(tags)))
 }
 
 fn parse_tag(input: &str) -> IResult<&str, (&str, &str)> {
@@ -46,7 +48,7 @@ mod tests {
         expected.insert("Tag1".to_string(), "Value 1".to_string());
         expected.insert("Tag2".to_string(), "Value 2".to_string());
 
-        assert_eq!(result, ("1. e4", expected))
+        assert_eq!(result, ("1. e4", Tags::new(expected)))
     }
 
     #[test]

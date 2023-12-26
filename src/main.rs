@@ -1,13 +1,20 @@
 #![allow(dead_code)]
 
-use fenrs::{execute_moves, parse};
 use std::fs;
 
+use fenrs::{execute_moves, launch, parse, Game};
+
 fn main() {
-    let file =
-        fs::read_to_string("./resources/test/acceptance/chess_com_games_2023-08-13.pgn").unwrap();
+    let file = fs::read_to_string("./resources/test/acceptance/astzhuop23.pgn").unwrap();
     let pgns = parse(&file).unwrap();
-    for pgn in pgns.iter() {
-        let _boards = execute_moves(pgn.fen().starting_board(), pgn.ply()).unwrap();
+
+    let mut games: Vec<Game> = Vec::new();
+
+    for pgn in pgns {
+        let boards = execute_moves(pgn.fen().starting_board(), pgn.ply()).unwrap();
+        let game = Game::new(pgn, boards);
+        games.push(game);
     }
+
+    launch(games).unwrap();
 }

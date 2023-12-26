@@ -1,11 +1,8 @@
 use nom::{character::complete::one_of, combinator::map_res, sequence::pair, IResult};
 
-use crate::model::Position;
+use crate::model::{Position, COLUMNS, ROWS};
 
 use super::error::PgnParseError;
-
-const ROWS: &str = "12345678";
-const COLUMNS: &str = "abcdefgh";
 
 pub fn parse(input: &str) -> IResult<&str, Position> {
     let parser = pair(column, row);

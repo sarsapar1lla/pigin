@@ -137,6 +137,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -149,6 +150,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -161,6 +163,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -173,6 +176,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -193,6 +197,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -205,6 +210,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -217,6 +223,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -251,6 +258,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -263,6 +271,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -283,6 +292,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -295,6 +305,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -316,6 +327,7 @@ mod tests {
                         ),
                         qualifier: Some(MoveQualifier::Col(2)),
                         check: None,
+                        capture: false,
                     },
                     Some("A comment".to_string()),
                 ),
@@ -343,6 +355,7 @@ mod tests {
                     ),
                     qualifier: None,
                     check: None,
+                    capture: false,
                 },
                 None,
             )];
@@ -362,6 +375,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -374,6 +388,7 @@ mod tests {
                         ),
                         qualifier: None,
                         check: None,
+                        capture: false,
                     },
                     None,
                 ),
@@ -408,7 +423,8 @@ mod tests {
                                 Position::new(4, 4)
                             ),
                             qualifier: None,
-                            check: None
+                            check: None,
+                            capture: false,
                         },
                         None
                     )
@@ -431,7 +447,8 @@ mod tests {
                                 Position::new(4, 4)
                             ),
                             qualifier: None,
-                            check: None
+                            check: None,
+                            capture: false,
                         },
                         Some("A comment".to_string())
                     )
@@ -454,7 +471,8 @@ mod tests {
                                 Position::new(4, 4)
                             ),
                             qualifier: None,
-                            check: None
+                            check: None,
+                            capture: false,
                         },
                         None
                     )

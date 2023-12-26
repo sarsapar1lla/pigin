@@ -39,12 +39,14 @@ fn execute_move(board: &Board, ply: &PlyMovement) -> Result<Board, EngineError> 
             movement,
             qualifier,
             check: _,
+            capture: _,
         } => piece_move(board, movement, qualifier.as_ref(), None),
         PlyMovement::Promotion {
             movement,
             promotes_to,
             qualifier,
             check: _,
+            capture: _,
         } => piece_move(board, movement, qualifier.as_ref(), Some(promotes_to)),
     }
 }
