@@ -47,8 +47,6 @@ mod tests {
     }
 
     mod current_tests {
-        use crate::model::BoardBuilder;
-
         use super::*;
 
         #[test]
@@ -103,7 +101,7 @@ mod tests {
         }
 
         fn board() -> Board {
-            let mut builder = BoardBuilder::new();
+            let mut builder = Board::builder();
             builder.piece(
                 Piece::new(PieceColour::White, PieceType::Pawn),
                 Position::new(3, 2),

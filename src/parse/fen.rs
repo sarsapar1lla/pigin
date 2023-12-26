@@ -17,7 +17,6 @@ use nom::{
 
 use super::error::PgnParseError;
 use super::position;
-use crate::model::BoardBuilder;
 
 #[derive(Debug, PartialEq, Eq)]
 enum FenCharacter {
@@ -46,7 +45,7 @@ fn board_from(
     available_castles: Vec<AvailableCastle>,
     en_passant_square: Option<Position>,
 ) -> Result<Board, PgnParseError> {
-    let mut builder = BoardBuilder::new();
+    let mut builder = Board::builder();
 
     builder.available_castles(available_castles);
 
@@ -194,7 +193,7 @@ mod tests {
             let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5";
             let result = parse(fen_string).unwrap();
 
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.available_castles(vec![
                 AvailableCastle::WhiteQueenside,
                 AvailableCastle::BlackKingside,
@@ -247,7 +246,7 @@ mod tests {
                 FenCharacter::Piece(Piece::new(PieceColour::White, PieceType::Knight)),
             ];
 
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Bishop),
                 Position::new(7, 6),

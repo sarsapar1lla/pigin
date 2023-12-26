@@ -40,8 +40,8 @@ mod tests {
     use std::{collections::HashMap, fs};
 
     use crate::model::{
-        AvailableCastle, BoardBuilder, Fen, GameResult, Movement, Piece, PieceColour, PieceType,
-        Ply, PlyMovement, Position, Tags,
+        AvailableCastle, Fen, GameResult, Movement, Piece, PieceColour, PieceType,
+        Ply, PlyMovement, Position, Tags, Board,
     };
 
     use super::*;
@@ -105,7 +105,7 @@ mod tests {
     }
 
     fn expected_fen() -> Fen {
-        let mut board_builder = BoardBuilder::new();
+        let mut board_builder = Board::builder();
         board_builder
             .available_castles(vec![AvailableCastle::BlackKingside])
             .piece(

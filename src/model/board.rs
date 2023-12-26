@@ -19,6 +19,10 @@ pub struct Board {
 
 // TODO: add tests
 impl Board {
+    pub fn builder() -> Builder {
+        Builder::new()
+    }
+
     pub fn available_castles(&self) -> &[AvailableCastle] {
         &self.available_castles
     }
@@ -31,6 +35,7 @@ impl Board {
         self.grid.get(&position)
     }
 
+    // TODO: review implementation
     pub fn search(&self, piece: Piece) -> Vec<Position> {
         self.grid
             .iter()
@@ -65,16 +70,16 @@ impl Board {
     }
 }
 
-pub struct BoardBuilder {
+pub struct Builder {
     grid: HashMap<Position, Piece>,
     available_castles: Vec<AvailableCastle>,
     en_passant_square: Option<Position>,
 }
 
 // TODO: add tests
-impl BoardBuilder {
-    pub fn new() -> Self {
-        BoardBuilder {
+impl Builder {
+    fn new() -> Self {
+        Builder {
             grid: HashMap::new(),
             available_castles: Vec::new(),
             en_passant_square: None,
@@ -84,17 +89,17 @@ impl BoardBuilder {
     pub fn available_castles(
         &mut self,
         available_castles: Vec<AvailableCastle>,
-    ) -> &mut BoardBuilder {
+    ) -> &mut Builder {
         self.available_castles = available_castles;
         self
     }
 
-    pub fn en_passant_square(&mut self, position: Position) -> &mut BoardBuilder {
+    pub fn en_passant_square(&mut self, position: Position) -> &mut Builder {
         let _result = self.en_passant_square.insert(position);
         self
     }
 
-    pub fn piece(&mut self, piece: Piece, position: Position) -> &mut BoardBuilder {
+    pub fn piece(&mut self, piece: Piece, position: Position) -> &mut Builder {
         self.grid.insert(position, piece);
         self
     }

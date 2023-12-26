@@ -125,8 +125,6 @@ fn remove_castling_for_colour(board: &mut Board, colour: PieceColour) -> &mut Bo
 
 #[cfg(test)]
 mod tests {
-    use crate::model::BoardBuilder;
-
     use super::*;
 
     mod kingside_tests {
@@ -134,7 +132,7 @@ mod tests {
 
         #[test]
         fn returns_err_if_castle_is_not_in_available_castles() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.available_castles(vec![
                 AvailableCastle::WhiteKingside,
                 AvailableCastle::BlackQueenside,
@@ -146,7 +144,7 @@ mod tests {
 
         #[test]
         fn performs_kingside_castle_for_white() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder
                 .available_castles(vec![
                     AvailableCastle::WhiteKingside,
@@ -183,7 +181,7 @@ mod tests {
 
         #[test]
         fn performs_kingside_castle_for_black() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder
                 .available_castles(vec![
                     AvailableCastle::BlackKingside,
@@ -224,7 +222,7 @@ mod tests {
 
         #[test]
         fn returns_err_if_castle_is_not_in_available_castles() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.available_castles(vec![
                 AvailableCastle::WhiteQueenside,
                 AvailableCastle::BlackKingside,
@@ -236,7 +234,7 @@ mod tests {
 
         #[test]
         fn performs_queenside_castle_for_white() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder
                 .available_castles(vec![
                     AvailableCastle::WhiteKingside,
@@ -273,7 +271,7 @@ mod tests {
 
         #[test]
         fn performs_kingside_castle_for_black() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder
                 .available_castles(vec![
                     AvailableCastle::BlackKingside,
@@ -314,7 +312,7 @@ mod tests {
 
         #[test]
         fn removes_castling_for_colour() {
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.available_castles(vec![
                 AvailableCastle::WhiteKingside,
                 AvailableCastle::WhiteQueenside,

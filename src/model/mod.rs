@@ -5,7 +5,7 @@ mod piece;
 mod ply;
 mod position;
 
-pub use board::{AvailableCastle, Board, BoardBuilder};
+pub use board::{AvailableCastle, Board};
 pub use game::Game;
 pub use pgn::{Fen, GameResult, Pgn, Tags};
 pub use piece::{Piece, PieceColour, PieceType};
