@@ -14,15 +14,15 @@ pub enum GameResult {
 pub struct Fen {
     starting_board: Board,
     active_colour: PieceColour,
-    move_number: u8,
+    fullmove_clock: usize,
 }
 
 impl Fen {
-    pub fn new(starting_board: Board, active_colour: PieceColour, move_number: u8) -> Self {
+    pub fn new(starting_board: Board, active_colour: PieceColour, fullmove_clock: usize) -> Self {
         Fen {
             starting_board,
             active_colour,
-            move_number,
+            fullmove_clock,
         }
     }
 
@@ -34,8 +34,8 @@ impl Fen {
         &self.active_colour
     }
 
-    pub fn move_number(&self) -> u8 {
-        self.move_number
+    pub fn fullmove_clock(&self) -> usize {
+        self.fullmove_clock
     }
 }
 

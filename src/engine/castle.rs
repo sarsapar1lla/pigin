@@ -2,7 +2,7 @@ use crate::model::{
     AvailableCastle, Board, Piece, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION,
 };
 
-use super::error::EngineError;
+use super::{active_colour, clocks, error::EngineError};
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -64,7 +64,10 @@ pub fn kingside(board: &Board, colour: PieceColour) -> Result<Board, EngineError
     next_board.add(Piece::new(colour, PieceType::King), king_position_after);
     next_board.add(Piece::new(colour, PieceType::Rook), rook_position_after);
 
+    active_colour::update(&mut next_board);
     remove_castling_for_colour(&mut next_board, colour);
+    clocks::halfmove(&mut next_board, PieceType::King, false);
+    clocks::fullmove(&mut next_board, colour);
 
     Ok(next_board)
 }
@@ -103,7 +106,10 @@ pub fn queenside(board: &Board, colour: PieceColour) -> Result<Board, EngineErro
     next_board.add(Piece::new(colour, PieceType::King), king_position_after);
     next_board.add(Piece::new(colour, PieceType::Rook), rook_position_after);
 
+    active_colour::update(&mut next_board);
     remove_castling_for_colour(&mut next_board, colour);
+    clocks::halfmove(&mut next_board, PieceType::King, false);
+    clocks::fullmove(&mut next_board, colour);
 
     Ok(next_board)
 }

@@ -11,8 +11,10 @@ use ratatui::prelude::*;
 
 mod app;
 mod board;
+mod centre;
 mod command;
 mod error;
+mod fen;
 mod games;
 mod ply;
 mod tags;

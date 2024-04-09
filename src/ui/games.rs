@@ -27,7 +27,6 @@ pub fn render(
         } else {
             Style::default()
         })
-        // .highlight_style(Style::default().bg(Color::Yellow))
         .highlight_spacing(HighlightSpacing::Always)
         .highlight_symbol(">>");
 
