@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt::Display;
+
 use nom::error::ErrorKind;
 use nom::error::ParseError;
 
@@ -32,5 +35,13 @@ impl ParseError<&str> for PgnParseError {
 
     fn or(self, _other: Self) -> Self {
         self
+    }
+}
+
+impl Error for PgnParseError {}
+
+impl Display for PgnParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

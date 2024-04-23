@@ -2,20 +2,28 @@
 
 use std::{error::Error, fs};
 
-use fenrs::{execute_moves, launch, parse, Game};
+use fenrs::{execute_moves, launch, parse, pigin, Game, Pgn};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = fs::read_to_string("./resources/test/acceptance/astzhuop23.pgn")?;
-    let pgns = parse(&file).unwrap();
+    let pigin = pigin();
+    let matches = pigin.get_matches();
+    let file_name: &String = matches
+        .get_one("file")
+        .ok_or("'file' argument not provided")?;
 
-    let mut games: Vec<Game> = Vec::new();
+    let file = fs::read_to_string(file_name)?;
+    let pgns = parse(&file)?;
 
-    for pgn in pgns {
-        let boards = execute_moves(pgn.fen().starting_board(), pgn.ply()).unwrap();
-        let game = Game::new(pgn, boards);
-        games.push(game);
-    }
+    let games = pgns
+        .into_iter()
+        .map(game_from)
+        .collect::<Result<Vec<Game>, Box<dyn Error>>>()?;
 
-    launch(games).unwrap();
+    launch(games)?;
     Ok(())
+}
+
+fn game_from(pgn: Pgn) -> Result<Game, Box<dyn Error>> {
+    let boards = execute_moves(pgn.fen().starting_board(), pgn.ply())?;
+    Ok(Game::new(pgn, boards))
 }
