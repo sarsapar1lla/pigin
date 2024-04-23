@@ -34,11 +34,13 @@ pub fn render(frame: &mut Frame, tags: &Tags, result: GameResult, area: Rect) {
         Cell::from(format!("{result}")),
     ]));
 
-    let table = Table::new(rows)
-        .header(header)
-        .style(Style::default().fg(Color::White))
-        .block(Block::default().borders(Borders::ALL))
-        .widths(&[Constraint::Percentage(20), Constraint::Percentage(80)]);
+    let table = Table::new(
+        rows,
+        &[Constraint::Percentage(20), Constraint::Percentage(80)],
+    )
+    .header(header)
+    .style(Style::default().fg(Color::White))
+    .block(Block::default().borders(Borders::ALL));
 
     let area = centre::centered_rect(70, 100, area);
 

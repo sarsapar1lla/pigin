@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use std::fs;
+use std::{error::Error, fs};
 
 use fenrs::{execute_moves, launch, parse, Game};
 
-fn main() {
-    let file = fs::read_to_string("./resources/test/acceptance/astzhuop23.pgn").unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    let file = fs::read_to_string("./resources/test/acceptance/astzhuop23.pgn")?;
     let pgns = parse(&file).unwrap();
 
     let mut games: Vec<Game> = Vec::new();
@@ -17,4 +17,5 @@ fn main() {
     }
 
     launch(games).unwrap();
+    Ok(())
 }

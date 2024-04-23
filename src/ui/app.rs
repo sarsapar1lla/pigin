@@ -15,7 +15,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
-use ratatui::widgets::{Block, Borders, Clear, ListState, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, ListState, Padding, Paragraph};
 
 pub struct App {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -168,7 +168,7 @@ fn render(
 
     let current_board = &games[current_game].boards()[current_ply];
     if display_fen {
-        fen_string(frame, top_region[0], current_board);
+        fen_string(frame, regions[1], current_board);
     }
     board::render(frame, current_board, perspective, top_region[1]);
 
@@ -198,21 +198,22 @@ fn title(frame: &mut Frame, area: Rect) {
 }
 
 fn fen_string(frame: &mut Frame, area: Rect, board: &Board) {
-    let fen_string = fen::from_board(board).unwrap();
-    let block = Paragraph::new(Span::styled(
-        fen_string,
-        Style::new().add_modifier(Modifier::ITALIC),
-    ))
-    .block(
-        Block::default()
-            .title("FEN string")
-            .title_alignment(ratatui::layout::Alignment::Left)
-            .borders(Borders::ALL),
-    )
-    .alignment(ratatui::prelude::Alignment::Center);
+    let fen_string = fen::from_board(board)
+        .unwrap_or_else(|_| String::from("Failed to generate FEN string for board"));
 
-    let area = centre::centered_rect(80, 20, area);
+    let fen_area = centre::centered_rect(80, 20, area);
+    let span = Span::styled(fen_string, Style::new().add_modifier(Modifier::ITALIC));
+    let padding = Padding::new(0, 0, ((fen_area.height - 1) / 2) - 1, 0);
+    let block = Paragraph::new(span)
+        .block(
+            Block::default()
+                .title("FEN string")
+                .title_alignment(ratatui::layout::Alignment::Left)
+                .padding(padding)
+                .borders(Borders::ALL),
+        )
+        .alignment(ratatui::prelude::Alignment::Center);
 
-    frame.render_widget(Clear, area);
-    frame.render_widget(block, area);
+    frame.render_widget(Clear, fen_area);
+    frame.render_widget(block, fen_area);
 }
