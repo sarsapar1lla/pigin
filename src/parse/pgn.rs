@@ -40,8 +40,8 @@ mod tests {
     use std::{collections::HashMap, fs};
 
     use crate::model::{
-        AvailableCastle, BoardBuilder, Fen, GameResult, Movement, Piece, PieceColour, PieceType,
-        Ply, PlyMovement, Position, Tags,
+        AvailableCastle, Board, Fen, GameResult, Movement, Piece, PieceColour, PieceType, Ply,
+        PlyMovement, Position, Tags,
     };
 
     use super::*;
@@ -105,9 +105,12 @@ mod tests {
     }
 
     fn expected_fen() -> Fen {
-        let mut board_builder = BoardBuilder::new();
+        let mut board_builder = Board::builder();
         board_builder
+            .active_colour(PieceColour::White)
             .available_castles(vec![AvailableCastle::BlackKingside])
+            .halfmove_clock(0)
+            .fullmove_clock(1)
             .piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
                 Position::new(7, 0),

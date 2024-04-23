@@ -17,7 +17,6 @@ use nom::{
 
 use super::error::PgnParseError;
 use super::position;
-use crate::model::BoardBuilder;
 
 #[derive(Debug, PartialEq, Eq)]
 enum FenCharacter {
@@ -36,23 +35,32 @@ pub fn parse(input: &str) -> IResult<&str, Fen> {
         fullmove_number,
     )));
     map_res(parser, |elements| {
-        let starting_board = board_from(elements.0, elements.2, elements.3)?;
+        let starting_board = board_from(
+            elements.0, elements.1, elements.2, elements.3, elements.4, elements.5,
+        )?;
         Ok::<Fen, PgnParseError>(Fen::new(starting_board, elements.1, elements.5))
     })(input)
 }
 
 fn board_from(
     fen_characters: Vec<FenCharacter>,
+    active_colour: PieceColour,
     available_castles: Vec<AvailableCastle>,
     en_passant_square: Option<Position>,
+    halfmove_clock: usize,
+    fullmove_clock: usize,
 ) -> Result<Board, PgnParseError> {
-    let mut builder = BoardBuilder::new();
+    let mut builder = Board::builder();
 
+    builder.active_colour(active_colour);
     builder.available_castles(available_castles);
 
     if let Some(position) = en_passant_square {
         builder.en_passant_square(position);
     }
+
+    builder.halfmove_clock(halfmove_clock);
+    builder.fullmove_clock(fullmove_clock);
 
     let mut row = MAX_POSITION;
     let mut col = MIN_POSITION;
@@ -161,12 +169,13 @@ fn en_passant_square(input: &str) -> IResult<&str, Option<Position>> {
     terminated(alt((none_parser, some_parser)), tag(" "))(input)
 }
 
-fn halfmove_clock(input: &str) -> IResult<&str, u8> {
-    terminated(u8, tag(" "))(input)
+fn halfmove_clock(input: &str) -> IResult<&str, usize> {
+    let parser = map(u8, usize::from);
+    terminated(parser, tag(" "))(input)
 }
 
-fn fullmove_number(input: &str) -> IResult<&str, u8> {
-    u8(input)
+fn fullmove_number(input: &str) -> IResult<&str, usize> {
+    map(u8, usize::from)(input)
 }
 
 #[cfg(test)]
@@ -194,12 +203,15 @@ mod tests {
             let fen_string = "r7/8/8/8/8/8/8/6K1 b Qk d4 12 5";
             let result = parse(fen_string).unwrap();
 
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
+            board_builder.active_colour(PieceColour::Black);
             board_builder.available_castles(vec![
                 AvailableCastle::WhiteQueenside,
                 AvailableCastle::BlackKingside,
             ]);
             board_builder.en_passant_square(Position::new(3, 3));
+            board_builder.halfmove_clock(12);
+            board_builder.fullmove_clock(5);
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
                 Position::new(7, 0),
@@ -222,9 +234,30 @@ mod tests {
         use super::*;
 
         #[test]
+        fn adds_active_colour() {
+            let result = board_from(
+                Vec::new(),
+                PieceColour::Black,
+                vec![AvailableCastle::BlackQueenside],
+                None,
+                0,
+                0,
+            )
+            .unwrap();
+            assert_eq!(result.active_colour(), &PieceColour::Black)
+        }
+
+        #[test]
         fn adds_available_castles() {
-            let result =
-                board_from(Vec::new(), vec![AvailableCastle::BlackQueenside], None).unwrap();
+            let result = board_from(
+                Vec::new(),
+                PieceColour::White,
+                vec![AvailableCastle::BlackQueenside],
+                None,
+                0,
+                0,
+            )
+            .unwrap();
             assert_eq!(
                 result.available_castles(),
                 &[AvailableCastle::BlackQueenside]
@@ -233,8 +266,44 @@ mod tests {
 
         #[test]
         fn adds_en_passant_square_if_present() {
-            let result = board_from(Vec::new(), Vec::new(), Some(Position::new(0, 0))).unwrap();
+            let result = board_from(
+                Vec::new(),
+                PieceColour::White,
+                Vec::new(),
+                Some(Position::new(0, 0)),
+                0,
+                0,
+            )
+            .unwrap();
             assert_eq!(result.en_passant_square(), Some(&Position::new(0, 0,)))
+        }
+
+        #[test]
+        fn adds_halfmove_clock() {
+            let result = board_from(
+                Vec::new(),
+                PieceColour::White,
+                Vec::new(),
+                Some(Position::new(0, 0)),
+                4,
+                0,
+            )
+            .unwrap();
+            assert_eq!(result.halfmove_clock(), 4)
+        }
+
+        #[test]
+        fn adds_fullmove_clock() {
+            let result = board_from(
+                Vec::new(),
+                PieceColour::White,
+                Vec::new(),
+                Some(Position::new(0, 0)),
+                0,
+                5,
+            )
+            .unwrap();
+            assert_eq!(result.fullmove_clock(), 5)
         }
 
         #[test]
@@ -247,7 +316,7 @@ mod tests {
                 FenCharacter::Piece(Piece::new(PieceColour::White, PieceType::Knight)),
             ];
 
-            let mut board_builder = BoardBuilder::new();
+            let mut board_builder = Board::builder();
             board_builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Bishop),
                 Position::new(7, 6),
@@ -258,7 +327,8 @@ mod tests {
             );
             let expected = board_builder.build();
 
-            let result = board_from(fen_characters, Vec::new(), None).unwrap();
+            let result =
+                board_from(fen_characters, PieceColour::White, Vec::new(), None, 0, 1).unwrap();
 
             assert_eq!(result, expected)
         }
@@ -269,7 +339,7 @@ mod tests {
                 FenCharacter::Empty(9),
                 FenCharacter::Piece(Piece::new(PieceColour::Black, PieceType::Queen)),
             ];
-            let result = board_from(fen_characters, Vec::new(), None);
+            let result = board_from(fen_characters, PieceColour::White, Vec::new(), None, 0, 0);
 
             assert!(result.is_err())
         }

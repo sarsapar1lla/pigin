@@ -187,7 +187,7 @@ pub fn render(
     let page = spans
         .chunks(spans_per_page)
         .nth(current_page)
-        .unwrap()
+        .expect("Current page chunk should always be available")
         .to_vec();
 
     let title = Title::from(format!("Page {}/{}", current_page + 1, pages))

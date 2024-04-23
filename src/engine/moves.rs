@@ -176,8 +176,6 @@ fn apply_metric_once(
 
 #[cfg(test)]
 mod tests {
-    use crate::model::BoardBuilder;
-
     use super::*;
 
     mod white_pawn_moves_tests {
@@ -221,7 +219,7 @@ mod tests {
         }
 
         fn board() -> Board {
-            let mut builder = BoardBuilder::new();
+            let mut builder = Board::builder();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
                 Position::new(2, 3),
@@ -272,7 +270,7 @@ mod tests {
         }
 
         fn board() -> Board {
-            let mut builder = BoardBuilder::new();
+            let mut builder = Board::builder();
             builder.piece(
                 Piece::new(PieceColour::White, PieceType::Rook),
                 Position::new(5, 3),
@@ -305,7 +303,7 @@ mod tests {
         }
 
         fn board() -> Board {
-            let mut builder = BoardBuilder::new();
+            let mut builder = Board::builder();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
                 Position::try_from(2, 3).unwrap(),
@@ -365,7 +363,7 @@ mod tests {
         }
 
         fn board() -> Board {
-            let mut builder = BoardBuilder::new();
+            let mut builder = Board::builder();
             builder.piece(
                 Piece::new(PieceColour::Black, PieceType::Rook),
                 Position::try_from(2, 3).unwrap(),
@@ -446,7 +444,7 @@ mod tests {
     }
 
     fn board() -> Board {
-        let mut builder = BoardBuilder::new();
+        let mut builder = Board::builder();
         builder.piece(
             Piece::new(PieceColour::Black, PieceType::Rook),
             Position::try_from(1, 0).unwrap(),

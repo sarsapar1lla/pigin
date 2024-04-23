@@ -1,4 +1,6 @@
+mod active_colour;
 mod castle;
+mod clocks;
 mod en_passant;
 mod error;
 mod legality;
@@ -39,15 +41,21 @@ fn execute_move(board: &Board, ply: &PlyMovement) -> Result<Board, EngineError> 
             movement,
             qualifier,
             check: _,
-            capture: _,
-        } => piece_move(board, movement, qualifier.as_ref(), None),
+            capture,
+        } => piece_move(board, movement, qualifier.as_ref(), None, *capture),
         PlyMovement::Promotion {
             movement,
             promotes_to,
             qualifier,
             check: _,
-            capture: _,
-        } => piece_move(board, movement, qualifier.as_ref(), Some(promotes_to)),
+            capture,
+        } => piece_move(
+            board,
+            movement,
+            qualifier.as_ref(),
+            Some(promotes_to),
+            *capture,
+        ),
     }
 }
 
@@ -57,6 +65,7 @@ fn piece_move(
     movement: &Movement,
     qualifier: Option<&MoveQualifier>,
     promotes_to: Option<&PieceType>,
+    capture: bool,
 ) -> Result<Board, EngineError> {
     let piece = movement.piece();
     let position = movement.position();
@@ -126,8 +135,11 @@ fn piece_move(
         Some(&other) => next_board.add(Piece::new(*piece.colour(), other), position),
     };
 
-    en_passant::next(piece, candidate, position, &mut next_board);
+    active_colour::update(&mut next_board);
     update_available_castles(piece, candidate, &mut next_board);
+    en_passant::next(piece, candidate, position, &mut next_board);
+    clocks::halfmove(&mut next_board, *piece.piece_type(), capture);
+    clocks::fullmove(&mut next_board, *piece.colour());
 
     Ok(next_board)
 }
@@ -174,7 +186,6 @@ fn qualified_position(
     }
 }
 
-// TODO: consider removing this
 fn update_available_castles(piece: Piece, position: Position, board: &mut Board) -> &mut Board {
     match (piece.piece_type(), piece.colour()) {
         (PieceType::King, PieceColour::White) => {

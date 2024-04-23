@@ -6,16 +6,16 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::block::Title;
 use ratatui::{prelude::CrosstermBackend, Frame, Terminal};
 
-use crate::model::{Game, PieceColour};
+use crate::model::{Board, Game, PieceColour};
 
 use super::{command::Command, error::UiError};
 
-use super::{board, command, games, ply, tags};
+use super::{board, centre, command, fen, games, ply, tags};
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
-use ratatui::widgets::{Block, Borders, ListState};
+use ratatui::widgets::{Block, Borders, Clear, ListState, Padding, Paragraph};
 
 pub struct App {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -26,6 +26,7 @@ pub struct App {
     perspective: PieceColour,
     list_state: ListState,
     show_metadata: bool,
+    display_fen: bool,
 }
 
 impl App {
@@ -41,6 +42,7 @@ impl App {
             perspective: PieceColour::White,
             list_state: ListState::default().with_selected(Some(0)),
             show_metadata: false,
+            display_fen: false,
         }
     }
 
@@ -99,6 +101,9 @@ impl App {
                     Command::ToggleMetadata => {
                         self.show_metadata = !self.show_metadata;
                     }
+                    Command::DisplayFen => {
+                        self.display_fen = !self.display_fen;
+                    }
                     Command::Quit => break,
                 }
             }
@@ -115,6 +120,7 @@ impl App {
                         &self.games,
                         &mut self.list_state,
                         self.show_metadata,
+                        self.display_fen,
                     );
                 })
                 .map_err(|e| UiError::new(format!("Failed to draw frame: {e}")))?;
@@ -131,6 +137,7 @@ fn render(
     games: &[Game],
     list_state: &mut ListState,
     show_metadata: bool,
+    display_fen: bool,
 ) {
     let regions = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -160,6 +167,9 @@ fn render(
     ply::render(frame, pgn.ply(), current_ply, pgn.result(), top_region[0]);
 
     let current_board = &games[current_game].boards()[current_ply];
+    if display_fen {
+        fen_string(frame, regions[1], current_board);
+    }
     board::render(frame, current_board, perspective, top_region[1]);
 
     games::render(frame, games, bottom_region, list_state, show_metadata);
@@ -185,4 +195,25 @@ fn title(frame: &mut Frame, area: Rect) {
         .title_alignment(ratatui::layout::Alignment::Left);
 
     frame.render_widget(title_block, area);
+}
+
+fn fen_string(frame: &mut Frame, area: Rect, board: &Board) {
+    let fen_string = fen::from_board(board)
+        .unwrap_or_else(|_| String::from("Failed to generate FEN string for board"));
+
+    let fen_area = centre::centered_rect(80, 20, area);
+    let span = Span::styled(fen_string, Style::new().add_modifier(Modifier::ITALIC));
+    let padding = Padding::new(0, 0, ((fen_area.height - 1) / 2) - 1, 0);
+    let block = Paragraph::new(span)
+        .block(
+            Block::default()
+                .title("FEN string")
+                .title_alignment(ratatui::layout::Alignment::Left)
+                .padding(padding)
+                .borders(Borders::ALL),
+        )
+        .alignment(ratatui::prelude::Alignment::Center);
+
+    frame.render_widget(Clear, fen_area);
+    frame.render_widget(block, fen_area);
 }

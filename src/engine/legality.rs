@@ -37,8 +37,6 @@ fn can_capture_king(king_position: Position, piece: Piece, board: &Board) -> boo
 mod tests {
     use super::*;
 
-    use crate::model::BoardBuilder;
-
     mod check_tests {
         use super::*;
 
@@ -130,7 +128,7 @@ mod tests {
     }
 
     fn board() -> Board {
-        let mut builder = BoardBuilder::new();
+        let mut builder = Board::builder();
         builder.piece(
             Piece::new(PieceColour::White, PieceType::Bishop),
             Position::new(3, 3),
