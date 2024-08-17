@@ -2,7 +2,7 @@
 
 use std::{error::Error, fs};
 
-use fenrs::{execute_moves, launch, parse, pigin, Game, Pgn};
+use pigin::{execute_moves, launch, parse, pigin, Game, Pgn};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let pigin = pigin();

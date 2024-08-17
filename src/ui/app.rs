@@ -146,7 +146,7 @@ fn render(
             Constraint::Percentage(90),
             Constraint::Percentage(5),
         ])
-        .split(frame.size());
+        .split(frame.area());
 
     let ui_regions = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
