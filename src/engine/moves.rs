@@ -106,7 +106,7 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
 fn apply_metrics(
     position: Position,
     colour: PieceColour,
-    metrics: &[(i8, i8)],
+    metrics: &[Metric],
     board: &Board,
 ) -> Vec<Position> {
     metrics
@@ -118,7 +118,7 @@ fn apply_metrics(
 fn apply_metric(
     mut position: Position,
     colour: PieceColour,
-    metric: (i8, i8),
+    metric: Metric,
     board: &Board,
 ) -> Vec<Position> {
     let mut positions: Vec<Position> = Vec::new();
@@ -140,7 +140,7 @@ fn apply_metric(
 fn apply_metrics_once(
     position: Position,
     colour: PieceColour,
-    metrics: &[(i8, i8)],
+    metrics: &[Metric],
     board: &Board,
 ) -> Vec<Position> {
     metrics
@@ -159,7 +159,7 @@ fn apply_metrics_once(
 fn apply_metric_once(
     position: Position,
     colour: PieceColour,
-    metric: (i8, i8),
+    metric: Metric,
     board: &Board,
 ) -> MoveOutcome {
     let row = position.row() + metric.0;
