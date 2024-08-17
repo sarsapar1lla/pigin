@@ -1,17 +1,20 @@
+use std::sync::LazyLock;
+
 use crate::model::{Board, Piece, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION};
-use lazy_static::lazy_static;
 
-const WHITE_PAWN_METRIC: (i8, i8) = (1, 0);
-const WHITE_DOUBLE_PAWN_METRIC: (i8, i8) = (2, 0);
-const BLACK_PAWN_METRIC: (i8, i8) = (-1, 0);
-const BLACK_DOUBLE_PAWN_METRIC: (i8, i8) = (-2, 0);
+type Metric = (i8, i8);
 
-const WHITE_PAWN_CAPTURES: &[(i8, i8)] = &[(1, -1), (1, 1)];
-const BLACK_PAWN_CAPTURES: &[(i8, i8)] = &[(-1, -1), (-1, 1)];
+const WHITE_PAWN_METRIC: Metric = (1, 0);
+const WHITE_DOUBLE_PAWN_METRIC: Metric = (2, 0);
+const BLACK_PAWN_METRIC: Metric = (-1, 0);
+const BLACK_DOUBLE_PAWN_METRIC: Metric = (-2, 0);
 
-const DIAGONAL_METRICS: &[(i8, i8)] = &[(1, -1), (1, 1), (-1, 1), (-1, -1)];
-const LATERAL_METRICS: &[(i8, i8)] = &[(1, 0), (0, 1), (0, -1), (-1, 0)];
-const KNIGHT_METRICS: &[(i8, i8)] = &[
+const WHITE_PAWN_CAPTURES: &[Metric] = &[(1, -1), (1, 1)];
+const BLACK_PAWN_CAPTURES: &[Metric] = &[(-1, -1), (-1, 1)];
+
+const DIAGONAL_METRICS: &[Metric] = &[(1, -1), (1, 1), (-1, 1), (-1, -1)];
+const LATERAL_METRICS: &[Metric] = &[(1, 0), (0, 1), (0, -1), (-1, 0)];
+const KNIGHT_METRICS: &[Metric] = &[
     (1, -2),
     (2, -1),
     (2, 1),
@@ -22,9 +25,8 @@ const KNIGHT_METRICS: &[(i8, i8)] = &[
     (-1, -2),
 ];
 
-lazy_static! {
-    static ref ALL_METRICS: Vec<(i8, i8)> = [DIAGONAL_METRICS, LATERAL_METRICS].concat();
-}
+static ALL_METRICS: LazyLock<Vec<Metric>> =
+    LazyLock::new(|| [DIAGONAL_METRICS, LATERAL_METRICS].concat());
 
 #[derive(Debug, PartialEq, Eq)]
 enum MoveOutcome {
@@ -104,7 +106,7 @@ fn pawn_moves(position: Position, colour: PieceColour, board: &Board) -> Vec<Pos
 fn apply_metrics(
     position: Position,
     colour: PieceColour,
-    metrics: &[(i8, i8)],
+    metrics: &[Metric],
     board: &Board,
 ) -> Vec<Position> {
     metrics
@@ -116,7 +118,7 @@ fn apply_metrics(
 fn apply_metric(
     mut position: Position,
     colour: PieceColour,
-    metric: (i8, i8),
+    metric: Metric,
     board: &Board,
 ) -> Vec<Position> {
     let mut positions: Vec<Position> = Vec::new();
@@ -138,7 +140,7 @@ fn apply_metric(
 fn apply_metrics_once(
     position: Position,
     colour: PieceColour,
-    metrics: &[(i8, i8)],
+    metrics: &[Metric],
     board: &Board,
 ) -> Vec<Position> {
     metrics
@@ -157,7 +159,7 @@ fn apply_metrics_once(
 fn apply_metric_once(
     position: Position,
     colour: PieceColour,
-    metric: (i8, i8),
+    metric: Metric,
     board: &Board,
 ) -> MoveOutcome {
     let row = position.row() + metric.0;

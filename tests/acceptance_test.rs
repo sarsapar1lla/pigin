@@ -1,5 +1,5 @@
-use fenrs::execute_moves;
-use fenrs::parse;
+use pigin::execute_moves;
+use pigin::parse;
 use std::fs;
 
 #[test]
@@ -11,8 +11,6 @@ fn parses_games() {
         let path = file.as_ref().unwrap().path();
         let content = fs::read_to_string(path).unwrap();
         let pgns = parse(&content).unwrap();
-
-        println!("Games parsed: {}", pgns.len());
 
         for pgn in pgns.iter() {
             let boards = execute_moves(pgn.fen().starting_board(), pgn.ply());

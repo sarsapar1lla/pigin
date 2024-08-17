@@ -1,34 +1,56 @@
+use std::sync::LazyLock;
+
 use crate::model::{
     AvailableCastle, Board, Piece, PieceColour, PieceType, Position, MAX_POSITION, MIN_POSITION,
 };
 
 use super::{active_colour, clocks, error::EngineError};
-use lazy_static::lazy_static;
 
-lazy_static! {
-    static ref WHITE_KING_POSITION: Position = Position::new(MIN_POSITION, 4);
-    static ref WHITE_KINGSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MIN_POSITION, MAX_POSITION - 1);
-    static ref WHITE_QUEENSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MIN_POSITION, MIN_POSITION + 2);
-    pub static ref WHITE_KINGS_ROOK_POSITION: Position = Position::new(MIN_POSITION, MAX_POSITION);
-    static ref WHITE_KINGSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MAX_POSITION - 2);
-    pub static ref WHITE_QUEENS_ROOK_POSITION: Position = Position::new(MIN_POSITION, MIN_POSITION);
-    static ref WHITE_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MIN_POSITION, MIN_POSITION + 3);
-    static ref BLACK_KING_POSITION: Position = Position::new(MAX_POSITION, 4);
-    static ref BLACK_KINGSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MAX_POSITION, MAX_POSITION - 1);
-    static ref BLACK_QUEENSIDE_CASTLE_KING_POSITION: Position =
-        Position::new(MAX_POSITION, MIN_POSITION + 2);
-    pub static ref BLACK_KINGS_ROOK_POSITION: Position = Position::new(MAX_POSITION, MAX_POSITION);
-    static ref BLACK_KINGSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MAX_POSITION - 2);
-    pub static ref BLACK_QUEENS_ROOK_POSITION: Position = Position::new(MAX_POSITION, MIN_POSITION);
-    static ref BLACK_QUEENSIDE_CASTLE_ROOK_POSITION: Position =
-        Position::new(MAX_POSITION, MIN_POSITION + 3);
-}
+// White King castling postitions
+static WHITE_KING_POSITION: LazyLock<Position> = LazyLock::new(|| Position::new(MIN_POSITION, 4));
+
+static WHITE_KINGSIDE_CASTLE_KING_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MAX_POSITION - 1));
+
+static WHITE_QUEENSIDE_CASTLE_KING_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MIN_POSITION + 2));
+
+// White kingside rook castling positions
+pub static WHITE_KINGS_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MAX_POSITION));
+
+static WHITE_KINGSIDE_CASTLE_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MAX_POSITION - 2));
+
+// White queenside rook castling positions
+pub static WHITE_QUEENS_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MIN_POSITION));
+
+static WHITE_QUEENSIDE_CASTLE_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MIN_POSITION, MIN_POSITION + 3));
+
+// Black King castling positions
+static BLACK_KING_POSITION: LazyLock<Position> = LazyLock::new(|| Position::new(MAX_POSITION, 4));
+
+static BLACK_KINGSIDE_CASTLE_KING_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MAX_POSITION - 1));
+
+static BLACK_QUEENSIDE_CASTLE_KING_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MIN_POSITION + 2));
+
+// Black kingside rook castling positions
+pub static BLACK_KINGS_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MAX_POSITION));
+
+static BLACK_KINGSIDE_CASTLE_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MAX_POSITION - 2));
+
+// Black queenside rook castling positions
+pub static BLACK_QUEENS_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MIN_POSITION));
+
+static BLACK_QUEENSIDE_CASTLE_ROOK_POSITION: LazyLock<Position> =
+    LazyLock::new(|| Position::new(MAX_POSITION, MIN_POSITION + 3));
 
 pub fn kingside(board: &Board, colour: PieceColour) -> Result<Board, EngineError> {
     let castle_type = match colour {
