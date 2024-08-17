@@ -24,10 +24,8 @@ mod tests {
     #[test]
     fn parses_file() {
         let matches = pigin().get_matches_from(&["pgn", "--file", "example.pgn"]);
-        assert_eq!(
-            matches.get_one::<String>("file"),
-            Some(&"example.pgn".to_string())
-        )
+        let files: Vec<_> = matches.get_many::<String>("file").unwrap().collect();
+        assert_eq!(files, vec!["example.pgn"])
     }
 
     #[test]
